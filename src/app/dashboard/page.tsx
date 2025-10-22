@@ -1,148 +1,130 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2, UploadCloud, File, Download, Trash2, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { storage, db } from "@/lib/firebase/config";
-import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
-import { doc, setDoc, getDoc, serverTimestamp, Timestamp } from "firebase/firestore";
-import { deleteFile as deleteFileAction } from "@/app/actions";
 
 interface UserFile {
   name: string;
   url: string;
-  uploadedAt: Timestamp;
+  uploadedAt: string;
 }
 
 export default function DashboardPage() {
-  const { user, loading } = useAuth();
+  const { user, loading, logout } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
   const [file, setFile] = useState<File | null>(null);
   const [userFile, setUserFile] = useState<UserFile | null>(null);
   const [isLoadingFile, setIsLoadingFile] = useState(true);
-  const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-
-  const fetchUserFile = useCallback(async () => {
-    if (!user) return;
-    setIsLoadingFile(true);
-    const fileDocRef = doc(db, "userFiles", user.uid);
-    const docSnap = await getDoc(fileDocRef);
-
-    if (docSnap.exists()) {
-      const fileData = docSnap.data() as UserFile;
-      const oneHour = 60 * 60 * 1000;
-      if (Date.now() - fileData.uploadedAt.toDate().getTime() > oneHour) {
-        toast({
-          title: "File Expired",
-          description: "Your file was older than 1 hour and has been deleted.",
-          variant: "destructive"
-        });
-        await deleteFileAction(user.uid, fileData.name);
-        setUserFile(null);
-      } else {
-        setUserFile(fileData);
-      }
-    } else {
-      setUserFile(null);
-    }
-    setIsLoadingFile(false);
-  }, [user, toast]);
+  const [fileUrl, setFileUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading && !user) {
       router.push("/login");
     }
   }, [user, loading, router]);
+  
+  useEffect(() => {
+    const storedFile = localStorage.getItem("ephemeral-file");
+    if (storedFile) {
+      const fileData: UserFile = JSON.parse(storedFile);
+      const oneHour = 60 * 60 * 1000;
+      if (Date.now() - new Date(fileData.uploadedAt).getTime() > oneHour) {
+        toast({
+          title: "File Expired",
+          description: "Your file was older than 1 hour and has been deleted.",
+          variant: "destructive"
+        });
+        localStorage.removeItem("ephemeral-file");
+        setUserFile(null);
+      } else {
+        setUserFile(fileData);
+      }
+    }
+    setIsLoadingFile(false);
+  }, [toast]);
 
   useEffect(() => {
-    if (user) {
-      fetchUserFile();
-    }
-  }, [user, fetchUserFile]);
+    // Clean up object URL on component unmount
+    return () => {
+      if (fileUrl) {
+        URL.revokeObjectURL(fileUrl);
+      }
+    };
+  }, [fileUrl]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      setFile(e.target.files[0]);
+    if (e.target.files && e.target.files[0]) {
+      const selectedFile = e.target.files[0];
+      setFile(selectedFile);
+      // Create a URL for the file to be "downloaded"
+      const url = URL.createObjectURL(selectedFile);
+      setFileUrl(url);
     }
   };
 
   const handleUpload = async () => {
-    if (!file || !user) return;
+    if (!file) return;
 
     setIsUploading(true);
-    setUploadProgress(0);
+    // Simulate upload delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    const newFileData = {
+      name: file.name,
+      url: fileUrl!,
+      uploadedAt: new Date().toISOString(),
+    };
 
-    const filePath = `user-files/${user.uid}/${file.name}`;
-    const storageRef = ref(storage, filePath);
-    const uploadTask = uploadBytesResumable(storageRef, file);
-
-    uploadTask.on(
-      "state_changed",
-      (snapshot) => {
-        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        setUploadProgress(progress);
-      },
-      (error) => {
-        setIsUploading(false);
-        toast({ title: "Upload Error", description: error.message, variant: "destructive" });
-      },
-      async () => {
-        const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-        const fileDocRef = doc(db, "userFiles", user.uid);
-        const newFileData = {
-          name: file.name,
-          url: downloadURL,
-          uploadedAt: serverTimestamp(),
-        };
-        await setDoc(fileDocRef, newFileData);
-        
-        // As setDoc does not return the resolved serverTimestamp, we fetch again
-        await fetchUserFile();
-
-        setIsUploading(false);
-        setFile(null);
-        toast({ title: "Success", description: "Your file has been uploaded." });
-      }
-    );
+    localStorage.setItem("ephemeral-file", JSON.stringify(newFileData));
+    setUserFile(newFileData);
+    
+    setIsUploading(false);
+    toast({ title: "Success", description: "Your file has been 'uploaded'." });
   };
 
   const handleDownload = async () => {
-    if (!userFile || !user) return;
+    if (!userFile) return;
+
+    // The 'url' is an object URL, we can trigger download with an anchor tag
+    const link = document.createElement('a');
+    link.href = userFile.url;
+    link.setAttribute('download', userFile.name);
+    document.body.appendChild(link);
+    link.click();
+    link.parentNode?.removeChild(link);
     
-    // Open download link
-    window.open(userFile.url, '_blank');
-
     toast({ title: "Downloaded", description: "File downloaded. It will now be deleted." });
-
-    // Delete file after download
+    
     await handleDelete();
   };
-  
+
   const handleDelete = async () => {
-    if (!userFile || !user) return;
-
+    if (!userFile) return;
     setIsDeleting(true);
-    const result = await deleteFileAction(user.uid, userFile.name);
-    if (result.success) {
-      setUserFile(null);
-      toast({ title: "File Deleted", description: "Your file has been successfully deleted." });
-    } else {
-      toast({ title: "Deletion Error", description: result.error, variant: "destructive" });
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    localStorage.removeItem("ephemeral-file");
+    setUserFile(null);
+    if(fileUrl) {
+      URL.revokeObjectURL(fileUrl);
+      setFileUrl(null);
+      setFile(null);
     }
-    setIsDeleting(false);
-  };
 
+    setIsDeleting(false);
+    toast({ title: "File Deleted", description: "Your file has been successfully deleted." });
+  };
 
   if (loading || !user) {
     return (
@@ -166,7 +148,7 @@ export default function DashboardPage() {
           <CardContent className="space-y-4">
             <Input type="file" onChange={handleFileChange} disabled={isUploading} />
             {isUploading ? (
-              <Progress value={uploadProgress} className="w-full" />
+              <p className="text-sm text-center">Uploading...</p>
             ) : (
               <Button onClick={handleUpload} disabled={!file} className="w-full">
                 <UploadCloud className="mr-2 h-4 w-4" />
@@ -194,7 +176,7 @@ export default function DashboardPage() {
                   <div className="flex-grow">
                     <p className="font-medium truncate">{userFile.name}</p>
                     <p className="text-sm text-muted-foreground">
-                      Expires at: {new Date(userFile.uploadedAt.toDate().getTime() + 60 * 60 * 1000).toLocaleTimeString()}
+                      Expires at: {new Date(new Date(userFile.uploadedAt).getTime() + 60 * 60 * 1000).toLocaleTimeString()}
                     </p>
                   </div>
                 </div>

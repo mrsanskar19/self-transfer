@@ -4,16 +4,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { auth } from "@/lib/firebase/config";
-import { signOut } from "firebase/auth";
 import { Loader2, Vault } from "lucide-react";
 
 export default function Header() {
-  const { user, loading } = useAuth();
+  const { user, loading, logout } = useAuth();
   const router = useRouter();
 
   const handleLogout = async () => {
-    await signOut(auth);
+    logout();
     router.push("/");
   };
 
