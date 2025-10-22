@@ -27,8 +27,8 @@ export function MessageBubble({ message, isOwnMessage }: MessageBubbleProps) {
     const isImageFile = message.type === 'file' && message.name?.match(/\.(jpeg|jpg|gif|png|webp)$/i);
 
     useEffect(() => {
-        if (isImageFile && !isOwnMessage) {
-            const fetchImageUrl = async () => {
+        const fetchImageUrl = async () => {
+            if (isImageFile) {
                 setIsLoadingUrl(true);
                 try {
                     const res = await fetch(`/api/messages/${message.id}`);
@@ -43,12 +43,10 @@ export function MessageBubble({ message, isOwnMessage }: MessageBubbleProps) {
                 } finally {
                     setIsLoadingUrl(false);
                 }
-            };
-            fetchImageUrl();
-        } else if (isImageFile && isOwnMessage && message.url) {
-            setImageUrl(message.url);
-        }
-    }, [message.id, message.url, isImageFile, isOwnMessage]);
+            }
+        };
+        fetchImageUrl();
+    }, [message.id, isImageFile]);
 
     const handleDelete = async (messageId: string) => {
         setDeletingId(messageId);
@@ -141,12 +139,9 @@ export function MessageBubble({ message, isOwnMessage }: MessageBubbleProps) {
                         </div>
                         <div className="flex items-center gap-3 text-xs text-muted-foreground">
                              {message.seen ? <CheckCheck size={14} className="text-blue-500" /> : <Check size={14} />}
-                            {message.deviceInfo && (
-                                <div className="flex items-center gap-1.5" title={`User Agent: ${message.deviceInfo.userAgent}\nIP: ${message.deviceInfo.ip}`}>
-                                    <Shield size={12} />
-                                    <span>From your device</span>
-                                </div>
-                            )}
+                             <span className="truncate" title={message.deviceInfo?.userAgent}>
+                                {message.userId} (You)
+                             </span>
                             {(message.type === 'text' || message.shareableUrl) && (
                                 <Button onClick={() => handleDelete(message.id)} variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive hover:bg-destructive/10" disabled={deletingId === message.id}>
                                     {deletingId === message.id ? <Loader2 className="animate-spin" size={12} /> : <Trash2 size={12} />}
@@ -158,7 +153,6 @@ export function MessageBubble({ message, isOwnMessage }: MessageBubbleProps) {
                         <AvatarFallback>{getInitials(message.userId)}</AvatarFallback>
                     </Avatar>
                 </div>
-                 {/* Vault's Reply */}
                  {message.type === 'file' && message.shareableUrl && (
                     <div className="flex justify-start items-end gap-3 mb-4">
                         <Avatar className="h-8 w-8">
@@ -201,9 +195,8 @@ export function MessageBubble({ message, isOwnMessage }: MessageBubbleProps) {
                     {renderMessageContent()}
                 </div>
                 {message.deviceInfo && (
-                     <div className="text-xs text-muted-foreground flex items-center gap-1.5" title={`User Agent: ${message.deviceInfo.userAgent}\nIP: ${message.deviceInfo.ip}`}>
-                        <Shield size={12} />
-                        <span>From {message.userId}</span>
+                     <div className="text-xs text-muted-foreground flex items-center gap-1.5" title={message.deviceInfo.userAgent}>
+                        <span>{message.userId}</span>
                     </div>
                 )}
             </div>

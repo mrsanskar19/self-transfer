@@ -21,6 +21,7 @@ export default function DashboardPage() {
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoadingMessages, setIsLoadingMessages] = useState(true);
+  const [deviceInfo, setDeviceInfo] = useState<{ ip: string; userAgent: string } | null>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -30,27 +31,34 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (user) {
-      const fetchMessages = async () => {
+      const fetchInitialData = async () => {
         setIsLoadingMessages(true);
         try {
-          const response = await fetch(`/api/messages`);
-          if (response.ok) {
-            let data: Message[] = await response.json();
-            // Initialize seen status for demonstration purposes
-            const processedData = data.map(msg => ({ ...msg, seen: msg.userId !== user.username }));
-            setMessages(processedData);
+          // Fetch messages
+          const msgResponse = await fetch(`/api/messages`);
+          if (msgResponse.ok) {
+            let data: Message[] = await msgResponse.json();
+            setMessages(data);
           } else {
             toast({ title: "Error", description: "Failed to load messages.", variant: "destructive" });
           }
+
+          // Fetch client IP info
+           const ipResponse = await fetch('https://ipapi.co/json/');
+           if(ipResponse.ok) {
+              const ipData = await ipResponse.json();
+              setDeviceInfo({ ip: ipData.ip, userAgent: navigator.userAgent });
+           }
+
         } catch (error) {
-          console.error("Failed to fetch messages:", error);
-          toast({ title: "Error", description: "An error occurred while fetching messages.", variant: "destructive" });
+          console.error("Failed to fetch initial data:", error);
+          toast({ title: "Error", description: "An error occurred while fetching data.", variant: "destructive" });
         } finally {
           setIsLoadingMessages(false);
         }
       };
 
-      fetchMessages();
+      fetchInitialData();
 
       const eventSource = new EventSource('/api/messages/events');
       
@@ -63,18 +71,10 @@ export default function DashboardPage() {
           const newMessage = eventData as Message;
           setMessages(prev => {
             if (prev.find(m => m.id === newMessage.id)) {
-              return prev.map(m => m.id === newMessage.id ? { ...m, seen: true } : m);
+              return prev;
             }
-            // Simulate "seen" for messages from others
-            return [...prev, { ...newMessage, seen: newMessage.userId !== user?.username }];
+            return [...prev, { ...newMessage }];
           });
-          
-          // Simulate other clients "seeing" the message
-          if(newMessage.userId === user?.username) {
-            setTimeout(() => {
-                setMessages(prev => prev.map(m => m.id === newMessage.id ? { ...m, seen: true } : m));
-            }, 2000);
-          }
         }
       };
 
@@ -121,7 +121,7 @@ export default function DashboardPage() {
 
   return (
     <div className="flex h-[calc(100vh-3.5rem)] flex-col bg-muted/20 dark:bg-card">
-      <Header user={user} onLogout={handleLogout} />
+      <Header user={user} onLogout={handleLogout} deviceInfo={deviceInfo} />
       
       <main className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
         {isLoadingMessages ? (
