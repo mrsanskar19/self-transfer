@@ -7,10 +7,11 @@ import { MessageBubble } from "./MessageBubble";
 
 interface MessageListProps {
     messages: Message[];
-    currentUser: User;
+    currentUser: User | null;
+    currentDeviceIp: string | undefined;
 }
 
-export function MessageList({ messages, currentUser }: MessageListProps) {
+export function MessageList({ messages, currentUser, currentDeviceIp }: MessageListProps) {
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     const scrollToBottom = () => {
@@ -21,10 +22,18 @@ export function MessageList({ messages, currentUser }: MessageListProps) {
         scrollToBottom();
     }, [messages]);
 
+    if (!currentUser) return null;
+
+    const sortedMessages = messages.sort((a,b) => new Date(a.uploadedAt).getTime() - new Date(b.uploadedAt).getTime());
+
     return (
         <div className="space-y-4">
-            {messages.map(msg => (
-                <MessageBubble key={msg.id} message={msg} isOwnMessage={msg.userId === currentUser.username} />
+            {sortedMessages.map(msg => (
+                <MessageBubble 
+                    key={msg.id} 
+                    message={msg} 
+                    isOwnMessage={msg.deviceInfo?.ip === currentDeviceIp && msg.userId === currentUser.username} 
+                />
             ))}
             <div ref={messagesEndRef} />
         </div>

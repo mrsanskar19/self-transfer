@@ -64,39 +64,43 @@ export default function DashboardPage() {
     const eventSource = new EventSource('/api/messages/events');
     
     const handleSseMessage = (event: MessageEvent) => {
-      const eventData: SseEventData = JSON.parse(event.data);
+      try {
+        const eventData: SseEventData = JSON.parse(event.data);
 
-      if (eventData.action === 'delete') {
-        setMessages(prev => prev.filter(m => m.id !== eventData.id));
-      } else if (eventData.action === 'add') {
-        const newMessage = eventData.message;
-        setMessages(prev => {
-          if (prev.find(m => m.id === newMessage.id)) {
-            return prev;
+        if (eventData.action === 'delete') {
+          setMessages(prev => prev.filter(m => m.id !== eventData.id));
+        } else if (eventData.action === 'add') {
+          const newMessage = eventData.message;
+          setMessages(prev => {
+            if (prev.find(m => m.id === newMessage.id)) {
+              return prev;
+            }
+            return [...prev, newMessage].sort((a, b) => new Date(a.uploadedAt).getTime() - new Date(b.uploadedAt).getTime());
+          });
+
+          // Mark as seen if not from self
+          const currentUserIp = deviceInfo?.ip;
+          if (currentUserIp && newMessage.deviceInfo?.ip !== currentUserIp) {
+            fetch(`/api/messages/${newMessage.id}/seen`, { method: 'POST' });
           }
-          return [...prev, newMessage];
-        });
-
-        // Mark as seen if not from self
-        const currentUserIp = deviceInfo?.ip;
-        if (currentUserIp && newMessage.deviceInfo?.ip !== currentUserIp) {
-          fetch(`/api/messages/${newMessage.id}/seen`, { method: 'POST' });
+        } else if (eventData.action === 'seen') {
+            setMessages(prev =>
+              prev.map(m =>
+                m.id === eventData.id && m.seenBy && !m.seenBy.includes(eventData.ip)
+                  ? { ...m, seenBy: [...m.seenBy, eventData.ip] }
+                  : m
+              )
+            );
         }
-      } else if (eventData.action === 'seen') {
-          setMessages(prev =>
-            prev.map(m =>
-              m.id === eventData.id && !m.seenBy.includes(eventData.ip)
-                ? { ...m, seenBy: [...m.seenBy, eventData.ip] }
-                : m
-            )
-          );
+      } catch (error) {
+          // This can happen if the event data is not valid JSON, we'll just ignore it.
       }
     };
     
     eventSource.onmessage = handleSseMessage;
 
     eventSource.onerror = (err) => {
-      // Browser will auto-reconnect
+      // Browser will auto-reconnect, no need to log error or close.
     };
     
     return () => {
@@ -106,10 +110,13 @@ export default function DashboardPage() {
 
   // Update device info with the latest IP from the user's own messages
   useEffect(() => {
-    if (user) {
-      const ownMessages = messages.filter(m => m.userId === user.username);
+    if (user && messages.length > 0) {
+      const ownMessages = messages
+        .filter(m => m.userId === user.username)
+        .sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime());
+        
       if (ownMessages.length > 0) {
-        const latestIp = ownMessages[ownMessages.length - 1].deviceInfo?.ip;
+        const latestIp = ownMessages[0].deviceInfo?.ip;
         if (latestIp && (!deviceInfo || deviceInfo.ip !== latestIp)) {
           setDeviceInfo({ ip: latestIp, userAgent: navigator.userAgent });
         }
@@ -137,7 +144,7 @@ export default function DashboardPage() {
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
           </div>
         ) : messages.length > 0 ? (
-          <MessageList messages={messages} currentUser={user} />
+          <MessageList messages={messages} currentUser={user} currentDeviceIp={deviceInfo?.ip} />
         ) : (
           <div className="flex justify-center items-center h-full">
             <Alert className="max-w-md text-center bg-background">

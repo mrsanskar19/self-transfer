@@ -91,7 +91,7 @@ export function MessageBubble({ message, isOwnMessage }: MessageBubbleProps) {
         link.click();
         link.parentNode?.removeChild(link);
         
-        toast({ title: "Downloaded", description: "File has been deleted from the vault." });
+        // No toast on download, just delete
         await fetch(`/api/messages/${message.id}`, { method: 'DELETE' });
     }
 
@@ -122,7 +122,7 @@ export function MessageBubble({ message, isOwnMessage }: MessageBubbleProps) {
             {isImage && (imageUrl || isLoadingUrl) && (
                  <div className="relative w-full aspect-video rounded-lg overflow-hidden bg-muted/50">
                     {isLoadingUrl && <div className="absolute inset-0 flex items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>}
-                    {imageUrl && <Image src={imageUrl} alt={message.name || 'Image preview'} layout="fill" objectFit="contain" />}
+                    {imageUrl && <Image src={imageUrl} alt={message.name || 'Image preview'} fill objectFit="contain" />}
                 </div>
             )}
             <div className="flex items-center gap-3 bg-primary/10 dark:bg-primary/20 p-3 rounded-lg">
@@ -139,7 +139,7 @@ export function MessageBubble({ message, isOwnMessage }: MessageBubbleProps) {
     const ipDisplay = message.deviceInfo?.ip?.replace('::ffff:', '');
     const timeDisplay = new Date(message.uploadedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-    const containerClasses = `flex items-start gap-3 mb-1 ${isOwnMessage ? 'justify-end' : 'justify-start'}`;
+    const containerClasses = `flex w-full max-w-lg gap-3 mx-auto ${isOwnMessage ? 'justify-end' : 'justify-start'}`;
 
     return (
         <>
@@ -149,12 +149,13 @@ export function MessageBubble({ message, isOwnMessage }: MessageBubbleProps) {
                         <AvatarFallback>{getInitials(message.userId)}</AvatarFallback>
                     </Avatar>
                 )}
-                <div className={`flex flex-col gap-1 max-w-xs lg:max-w-md ${isOwnMessage ? 'items-end' : 'items-start'}`}>
-                    <div className={`p-3 rounded-2xl ${isOwnMessage ? 'rounded-br-none bg-primary text-primary-foreground' : 'rounded-bl-none bg-background dark:bg-muted'}`}>
+
+                <div className={`flex flex-col gap-1 w-full ${isOwnMessage ? 'items-end' : 'items-start'}`}>
+                    <div className={`p-3 rounded-2xl w-fit max-w-xs lg:max-w-sm ${isOwnMessage ? 'rounded-br-none bg-primary text-primary-foreground' : 'rounded-bl-none bg-background dark:bg-muted'}`}>
                         {renderMessageContent()}
                     </div>
                      <div className="flex items-center gap-3 text-xs text-muted-foreground px-2">
-                         <span>{ipDisplay}</span>
+                         <span>{ipDisplay} ({message.userId})</span>
                          <span>{timeDisplay}</span>
                         {isOwnMessage && (hasBeenSeen ? <CheckCheck size={14} className="text-blue-500" /> : <Check size={14} />)}
                     </div>
@@ -166,7 +167,7 @@ export function MessageBubble({ message, isOwnMessage }: MessageBubbleProps) {
                             <MoreVertical size={16} />
                          </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent>
+                    <DropdownMenuContent align={isOwnMessage ? "end" : "start"}>
                         {isOwnMessage && (
                             <DropdownMenuItem onClick={() => handleDelete(message.id)}>
                                 {deletingId === message.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
@@ -193,8 +194,8 @@ export function MessageBubble({ message, isOwnMessage }: MessageBubbleProps) {
 
             {isOwnMessage && message.type === 'file' && message.shareableUrl && (
                 <div className="flex justify-end items-end gap-3 mb-4">
-                    <div className="max-w-xs lg:max-w-md space-y-2">
-                        <Card className="bg-background dark:bg-muted ml-11">
+                    <div className="max-w-xs lg:max-w-md space-y-2 ml-auto">
+                        <Card className="bg-background dark:bg-muted">
                             <CardContent className="p-3 space-y-3">
                                 <div>
                                     <p className="font-semibold text-sm mb-1 flex items-center gap-2"><Shield size={14} /> Shareable Link</p>
