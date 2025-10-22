@@ -6,5 +6,24 @@
       "password": "test123"
     }
   ],
-  "messages": []
+  "messages": [
+    {
+      "id": "1761131674805",
+      "uploadedAt": "2025-10-22T11:14:34.805Z",
+      "shareableUrl": "http://0.0.0.0:9002/shared/1761131674805",
+      "type": "text",
+      "content": "hi",
+      "userId": "test",
+      "deviceInfo": "Mozilla/5.0 (X11; CrOS x86_64 14541.0.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+    },
+    {
+      "id": "1761131682931",
+      "uploadedAt": "2025-10-22T11:14:42.931Z",
+      "shareableUrl": "http://0.0.0.0:9002/shared/1761131682931",
+      "type": "text",
+      "content": "jhvds",
+      "userId": "test",
+      "deviceInfo": "Mozilla/5.0 (X11; CrOS x86_64 14541.0.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+    }
+  ]
 }

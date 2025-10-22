@@ -49,10 +49,10 @@ export default function DashboardPage() {
   };
 
   const fetchMessages = useCallback(async () => {
-    if (!user) return;
     setIsLoadingMessages(true);
     try {
-      const response = await fetch(`/api/messages?username=${user.username}`);
+      // Fetch all messages to display a full chat history
+      const response = await fetch(`/api/messages`);
       if (response.ok) {
         let data: Message[] = await response.json();
         const oneHour = 60 * 60 * 1000;
@@ -60,6 +60,7 @@ export default function DashboardPage() {
         
         const validMessages = data.filter(msg => {
           if (now - new Date(msg.uploadedAt).getTime() > oneHour) {
+            // Silently delete expired messages on the backend
             fetch(`/api/messages/${msg.id}`, { method: 'DELETE' });
             return false;
           }
@@ -76,7 +77,7 @@ export default function DashboardPage() {
     } finally {
       setIsLoadingMessages(false);
     }
-  }, [user, toast]);
+  }, [toast]);
 
 
   useEffect(() => {
@@ -95,6 +96,7 @@ export default function DashboardPage() {
           setMessages(prev => prev.filter(m => m.id !== eventData.id));
         } else if('id' in eventData) {
           const newMessage = eventData as Message;
+          // Add new message if it doesn't already exist
           setMessages(prev => prev.find(m => m.id === newMessage.id) ? prev : [...prev, newMessage]);
         }
       };
@@ -123,6 +125,7 @@ export default function DashboardPage() {
         prevMessages.filter(msg => {
           const isExpired = now - new Date(msg.uploadedAt).getTime() > oneHour;
           if (isExpired) {
+            // Trigger deletion on the backend which will notify via SSE
             fetch(`/api/messages/${msg.id}`, { method: 'DELETE' });
           }
           return !isExpired;

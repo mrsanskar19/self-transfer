@@ -25,33 +25,10 @@ async function saveDb(data: any) {
   await fs.writeFile(dbPath, JSON.stringify(data, null, 2));
 }
 
-function getUsernameFromSession() {
-    // In a real app, you'd get this from a secure session cookie or token.
-    // For this example, we'll assume a header is sent.
-    // This is NOT secure for production.
-    const headersList = headers();
-    const userStr = headersList.get('X-User');
-    if (userStr) {
-        try {
-            return JSON.parse(userStr).username;
-        } catch {
-            return null;
-        }
-    }
-    return null;
-}
-
 export async function GET(request: Request) {
-    const url = new URL(request.url)
-    const username = url.searchParams.get('username');
-
     try {
         const db = await getDb();
-        if (!username) {
-             return NextResponse.json(db.messages);
-        }
-        const userMessages = db.messages.filter((m: any) => m.userId === username);
-        return NextResponse.json(userMessages);
+        return NextResponse.json(db.messages);
     } catch (error) {
         console.error('GET messages error:', error);
         return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
