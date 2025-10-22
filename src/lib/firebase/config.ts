@@ -1,3 +1,4 @@
+
 import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
 import { getAuth, Auth } from "firebase/auth";
 import { getFirestore, Firestore } from "firebase/firestore";
@@ -17,13 +18,20 @@ let auth: Auth;
 let db: Firestore;
 let storage: FirebaseStorage;
 
-// Client-side initialization
-if (typeof window !== 'undefined') {
-  app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+function initializeFirebase() {
+  if (getApps().length === 0) {
+    app = initializeApp(firebaseConfig);
+  } else {
+    app = getApp();
+  }
   auth = getAuth(app);
   db = getFirestore(app);
   storage = getStorage(app);
 }
 
-// @ts-ignore
+// Initialize on client side only
+if (typeof window !== 'undefined') {
+  initializeFirebase();
+}
+
 export { app, auth, db, storage };
