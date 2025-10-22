@@ -49,10 +49,7 @@ export default function SignupPage() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
-    // In our mock app, signup just logs you in.
     try {
-      // We'll use the same login logic for simplicity.
-      // In a real app, you would have a separate signup function.
       await login(values.username, values.password);
       toast({
         title: "Account Created",

@@ -1,18 +1,21 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Loader2, UploadCloud, File, Download, Trash2, AlertCircle } from "lucide-react";
+import { Loader2, UploadCloud, File as FileIcon, Download, Trash2, AlertCircle, Share2, Copy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
 
 interface UserFile {
   name: string;
   url: string;
+  shareableUrl: string;
   uploadedAt: string;
 }
 
@@ -27,6 +30,8 @@ export default function DashboardPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [fileUrl, setFileUrl] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -55,7 +60,6 @@ export default function DashboardPage() {
   }, [toast]);
 
   useEffect(() => {
-    // Clean up object URL on component unmount
     return () => {
       if (fileUrl) {
         URL.revokeObjectURL(fileUrl);
@@ -67,22 +71,38 @@ export default function DashboardPage() {
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
       setFile(selectedFile);
-      // Create a URL for the file to be "downloaded"
       const url = URL.createObjectURL(selectedFile);
       setFileUrl(url);
+      handleUpload(selectedFile, url);
     }
   };
 
-  const handleUpload = async () => {
-    if (!file) return;
+  const handleUpload = async (selectedFile: File, objectUrl: string) => {
+    if (!selectedFile) return;
 
     setIsUploading(true);
-    // Simulate upload delay
+    setUploadProgress(0);
+
+    const progressInterval = setInterval(() => {
+      setUploadProgress(prev => {
+        if (prev >= 99) {
+          clearInterval(progressInterval);
+          return 99;
+        }
+        return prev + 10;
+      });
+    }, 100);
+
     await new Promise(resolve => setTimeout(resolve, 1000));
-    
+    clearInterval(progressInterval);
+    setUploadProgress(100);
+
+    const shareableUrl = `${window.location.origin}/shared/${btoa(selectedFile.name)}`;
+
     const newFileData = {
-      name: file.name,
-      url: fileUrl!,
+      name: selectedFile.name,
+      url: objectUrl,
+      shareableUrl: shareableUrl,
       uploadedAt: new Date().toISOString(),
     };
 
@@ -90,13 +110,16 @@ export default function DashboardPage() {
     setUserFile(newFileData);
     
     setIsUploading(false);
-    toast({ title: "Success", description: "Your file has been 'uploaded'." });
+    setFile(null);
+    if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+    }
+    toast({ title: "Success", description: "Your file has been uploaded." });
   };
-
+  
   const handleDownload = async () => {
     if (!userFile) return;
 
-    // The 'url' is an object URL, we can trigger download with an anchor tag
     const link = document.createElement('a');
     link.href = userFile.url;
     link.setAttribute('download', userFile.name);
@@ -119,11 +142,17 @@ export default function DashboardPage() {
     if(fileUrl) {
       URL.revokeObjectURL(fileUrl);
       setFileUrl(null);
-      setFile(null);
     }
 
     setIsDeleting(false);
     toast({ title: "File Deleted", description: "Your file has been successfully deleted." });
+  };
+
+  const handleCopyToClipboard = () => {
+    if (!userFile) return;
+    navigator.clipboard.writeText(userFile.shareableUrl).then(() => {
+      toast({ title: "Copied!", description: "Shareable link copied to clipboard." });
+    });
   };
 
   if (loading || !user) {
@@ -135,74 +164,87 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="container mx-auto p-4 md:p-8">
-      <h1 className="text-3xl font-bold mb-2">Welcome to your Vault</h1>
-      <p className="text-muted-foreground mb-8">Manage your ephemeral file below.</p>
+    <div className="container mx-auto p-4 md:p-8 max-w-2xl">
+      <header className="mb-8">
+        <h1 className="text-3xl font-bold">Welcome to your Vault</h1>
+        <p className="text-muted-foreground">Manage your ephemeral file below. It will be deleted after 1 hour or 1 download.</p>
+      </header>
 
-      <div className="grid gap-8 md:grid-cols-2">
-        <Card>
+      <Card className="mb-8">
           <CardHeader>
-            <CardTitle>Upload New File</CardTitle>
-            <CardDescription>Upload a file to your vault. Any existing file will be replaced.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Input type="file" onChange={handleFileChange} disabled={isUploading} />
-            {isUploading ? (
-              <p className="text-sm text-center">Uploading...</p>
-            ) : (
-              <Button onClick={handleUpload} disabled={!file} className="w-full">
-                <UploadCloud className="mr-2 h-4 w-4" />
-                Upload File
-              </Button>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Your File</CardTitle>
-            <CardDescription>The file currently stored in your vault.</CardDescription>
+            <CardTitle className="flex items-center gap-2">
+              <UploadCloud className="text-primary"/>
+              Upload File
+            </CardTitle>
+            <CardDescription>Upload a new file to your vault. Any existing file will be replaced.</CardDescription>
           </CardHeader>
           <CardContent>
-            {isLoadingFile ? (
-              <div className="flex items-center space-x-2 text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span>Loading file info...</span>
+            <Input type="file" onChange={handleFileChange} disabled={isUploading} ref={fileInputRef} />
+             {isUploading && (
+              <div className="mt-4 space-y-2">
+                <Progress value={uploadProgress} className="w-full" />
+                <p className="text-sm text-center text-muted-foreground">Uploading... {uploadProgress}%</p>
               </div>
-            ) : userFile ? (
-              <div className="space-y-4">
-                <div className="flex items-center p-4 border rounded-md bg-background">
-                  <File className="h-6 w-6 mr-4 text-primary" />
-                  <div className="flex-grow">
-                    <p className="font-medium truncate">{userFile.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      Expires at: {new Date(new Date(userFile.uploadedAt).getTime() + 60 * 60 * 1000).toLocaleTimeString()}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex space-x-2">
-                  <Button onClick={handleDownload} className="flex-1">
-                    <Download className="mr-2 h-4 w-4" />
-                    Download
-                  </Button>
-                  <Button onClick={handleDelete} variant="destructive" className="flex-1" disabled={isDeleting}>
-                    {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
-                    Delete Now
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <Alert>
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>No File Found</AlertTitle>
-                <AlertDescription>
-                  Your vault is empty. Upload a file to get started.
-                </AlertDescription>
-              </Alert>
             )}
           </CardContent>
         </Card>
-      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Your File</CardTitle>
+          <CardDescription>The file currently stored in your vault.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isLoadingFile ? (
+            <div className="flex items-center space-x-2 text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>Loading file info...</span>
+            </div>
+          ) : userFile ? (
+            <div className="space-y-4">
+              <div className="flex items-center p-4 border rounded-md bg-background/50">
+                <FileIcon className="h-8 w-8 mr-4 text-primary" />
+                <div className="flex-grow min-w-0">
+                  <p className="font-medium truncate" title={userFile.name}>{userFile.name}</p>
+                  <p className="text-sm text-muted-foreground">
+                    <Badge variant="outline">Expires at: {new Date(new Date(userFile.uploadedAt).getTime() + 60 * 60 * 1000).toLocaleTimeString()}</Badge>
+                  </p>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                 <Label htmlFor="share-link">Shareable Link</Label>
+                 <div className="flex gap-2">
+                    <Input id="share-link" type="text" readOnly value={userFile.shareableUrl} className="bg-muted"/>
+                    <Button variant="outline" size="icon" onClick={handleCopyToClipboard}>
+                      <Copy className="h-4 w-4" />
+                      <span className="sr-only">Copy link</span>
+                    </Button>
+                 </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <Button onClick={handleDownload} className="w-full">
+                  <Download className="mr-2" />
+                  Download & Delete
+                </Button>
+                <Button onClick={handleDelete} variant="destructive" className="w-full" disabled={isDeleting}>
+                  {isDeleting ? <Loader2 className="mr-2 animate-spin" /> : <Trash2 className="mr-2" />}
+                  Delete Now
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Your vault is empty</AlertTitle>
+              <AlertDescription>
+                Upload a file to get started. It will appear here.
+              </AlertDescription>
+            </Alert>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
