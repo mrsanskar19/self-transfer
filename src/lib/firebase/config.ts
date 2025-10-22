@@ -18,20 +18,11 @@ let auth: Auth;
 let db: Firestore;
 let storage: FirebaseStorage;
 
-function initializeFirebase() {
-  if (getApps().length === 0) {
-    app = initializeApp(firebaseConfig);
-  } else {
-    app = getApp();
-  }
-  auth = getAuth(app);
-  db = getFirestore(app);
-  storage = getStorage(app);
-}
-
-// Initialize on client side only
 if (typeof window !== 'undefined') {
-  initializeFirebase();
+    app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+    auth = getAuth(app);
+    db = getFirestore(app);
+    storage = getStorage(app);
 }
 
 export { app, auth, db, storage };
