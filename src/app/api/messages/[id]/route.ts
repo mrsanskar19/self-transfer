@@ -1,6 +1,8 @@
+
 import { NextResponse } from 'next/server';
 import path from 'path';
 import fs from 'fs/promises';
+import { broadcastMessage } from '../events/route';
 
 const dbPath = path.join(process.cwd(), 'data', 'db.json');
 
@@ -45,6 +47,8 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
     
     if (db.messages.length < initialLength) {
       await saveDb(db);
+      // Broadcast the deletion event
+      broadcastMessage({ action: 'delete', id: params.id });
       return NextResponse.json({ message: 'Message deleted' }, { status: 200 });
     } else {
       return NextResponse.json({ message: 'Message not found' }, { status: 404 });
