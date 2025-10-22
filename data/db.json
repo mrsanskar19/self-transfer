@@ -6,5 +6,22 @@
       "password": "test123"
     }
   ],
-  "messages": []
+  "messages": [
+    {
+      "id": "1761131364052",
+      "uploadedAt": "2025-10-22T11:09:24.052Z",
+      "shareableUrl": "http://0.0.0.0:9002/shared/1761131364052",
+      "type": "text",
+      "content": "hi",
+      "userId": "test"
+    },
+    {
+      "id": "1761131390436",
+      "uploadedAt": "2025-10-22T11:09:50.436Z",
+      "shareableUrl": "http://0.0.0.0:9002/shared/1761131390436",
+      "type": "text",
+      "content": "hi",
+      "userId": "test"
+    }
+  ]
 }

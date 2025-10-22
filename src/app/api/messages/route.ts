@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import path from 'path';
 import fs from 'fs/promises';
+import { broadcastMessage } from './events/route';
 
 const dbPath = path.join(process.cwd(), 'data', 'db.json');
 
@@ -41,13 +42,14 @@ function getUsernameFromSession() {
 }
 
 export async function GET(request: Request) {
-    // This is insecure, but for a local network demo it's simple.
-    // In a real app, use JWTs or a session library.
     const url = new URL(request.url)
     const username = url.searchParams.get('username');
 
     try {
         const db = await getDb();
+        if (!username) {
+             return NextResponse.json(db.messages);
+        }
         const userMessages = db.messages.filter((m: any) => m.userId === username);
         return NextResponse.json(userMessages);
     } catch (error) {
@@ -74,6 +76,9 @@ export async function POST(request: Request) {
 
     db.messages.push(newMessage);
     await saveDb(db);
+
+    // Broadcast the new message to all connected SSE clients
+    broadcastMessage(newMessage);
 
     return NextResponse.json(newMessage, { status: 201 });
   } catch (error) {

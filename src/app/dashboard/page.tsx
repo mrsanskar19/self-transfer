@@ -45,7 +45,8 @@ export default function DashboardPage() {
     if (!user) return;
     setIsLoadingMessages(true);
     try {
-      const response = await fetch('/api/messages');
+      // Fetch messages for the current user to populate initial state
+      const response = await fetch(`/api/messages?username=${user.username}`);
       if (response.ok) {
         let data: Message[] = await response.json();
         
@@ -80,10 +81,49 @@ export default function DashboardPage() {
     }
     if (user) {
       fetchMessages();
-      const interval = setInterval(fetchMessages, 30000); // Poll for new/expired messages
-      return () => clearInterval(interval);
+
+      // Establish SSE connection
+      const eventSource = new EventSource('/api/messages/events');
+      
+      eventSource.onmessage = (event) => {
+        const newMessage: Message = JSON.parse(event.data);
+        // Add new message only if it's not already in the list
+        setMessages(prev => prev.find(m => m.id === newMessage.id) ? prev : [...prev, newMessage]);
+      };
+
+      eventSource.onerror = (err) => {
+        console.error("EventSource failed:", err);
+        // You might want to add some logic to try and reconnect
+        eventSource.close();
+      };
+      
+      // Cleanup on component unmount
+      return () => {
+        eventSource.close();
+      };
     }
   }, [user, loading, router, fetchMessages]);
+
+  useEffect(() => {
+    const checkExpiredMessages = () => {
+      const oneHour = 60 * 60 * 1000;
+      const now = Date.now();
+      
+      setMessages(prevMessages => 
+        prevMessages.filter(msg => {
+          const isExpired = now - new Date(msg.uploadedAt).getTime() > oneHour;
+          if (isExpired) {
+            // Optimistically remove from UI, and send delete request
+            fetch(`/api/messages/${msg.id}`, { method: 'DELETE' });
+          }
+          return !isExpired;
+        })
+      );
+    };
+
+    const interval = setInterval(checkExpiredMessages, 60000); // Check for expired messages every minute
+    return () => clearInterval(interval);
+  }, []);
 
   const handleFileTrigger = () => {
     fileInputRef.current?.click();
@@ -139,13 +179,11 @@ export default function DashboardPage() {
         body: JSON.stringify(newMessagePayload),
       });
 
-      if (response.ok) {
-        const createdMessage = await response.json();
-        setMessages(prev => [...prev, createdMessage]);
-        toast({ title: "Success", description: "Your message is in the vault." });
-      } else {
+      if (!response.ok) {
         throw new Error('Failed to send message');
       }
+      // No need to manually add to state, SSE will handle it
+      toast({ title: "Success", description: "Your message is in the vault." });
     } catch (error) {
        toast({ title: "Error", description: "Could not send message.", variant: "destructive" });
     } finally {
@@ -238,84 +276,101 @@ export default function DashboardPage() {
           ) : messages.length > 0 ? (
             messages.map(msg => (
             <div key={msg.id}>
-              {/* User's Message */}
-              <div className="flex justify-end items-end gap-3 mb-4">
-                 <div className="max-w-xs lg:max-w-md p-4 rounded-lg rounded-br-none bg-primary text-primary-foreground">
-                    {renderMessageContent(msg)}
-                </div>
-                <Avatar>
-                  <AvatarFallback>{getInitials(user.username)}</AvatarFallback>
-                </Avatar>
-              </div>
-
-              {/* Vault's Reply */}
-              {msg.type === 'file' && msg.shareableUrl && (
-                <div className="flex justify-start items-end gap-3">
-                   <Avatar>
-                      <AvatarFallback><Shield className="h-5 w-5"/></AvatarFallback>
+              {/* Message Block */}
+              {msg.userId === user.username ? (
+                // User's Message (Sent)
+                <div className="flex justify-end items-end gap-3 mb-4">
+                  <div className="max-w-xs lg:max-w-md p-4 rounded-lg rounded-br-none bg-primary text-primary-foreground">
+                      {renderMessageContent(msg)}
+                  </div>
+                  <Avatar>
+                    <AvatarFallback>{getInitials(user.username)}</AvatarFallback>
                   </Avatar>
-                  <div className="max-w-xs lg:max-w-md space-y-4">
-                    <div className="p-4 rounded-lg rounded-bl-none bg-muted">
-                      <p className="font-semibold text-sm mb-2">File Secured in Vault!</p>
-                      <p className="text-xs text-muted-foreground">
-                        Expires at: {new Date(new Date(msg.uploadedAt).getTime() + 60 * 60 * 1000).toLocaleTimeString()}
-                      </p>
-                      {msg.deviceInfo && (
-                        <div className="mt-4 p-2 border rounded-md bg-background/50 text-xs flex items-center gap-2">
-                          <Shield className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                           <p className="truncate text-muted-foreground" title={msg.deviceInfo}>
-                            From: {msg.deviceInfo}
-                           </p>
-                        </div>
-                      )}
-                    </div>
-                    <Card className="bg-muted">
-                      <CardContent className="p-4 space-y-4">
-                        <div>
-                          <Label htmlFor={`share-link-${msg.id}`}>Shareable Link</Label>
-                          <div className="flex gap-2 mt-1">
-                            <Input id={`share-link-${msg.id}`} type="text" readOnly value={msg.shareableUrl} className="bg-background h-9"/>
-                            <Button variant="outline" size="icon" onClick={() => handleCopyToClipboard(msg.shareableUrl!)} title="Copy Link" className="h-9 w-9">
-                              <Copy className="h-4 w-4" />
-                            </Button>
-                             <Button variant="outline" size="icon" onClick={() => handleShareViaText(msg.shareableUrl!)} title="Share via Text" className="h-9 w-9">
-                              <MessageSquareText className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-2">
-                          <Button onClick={() => handleDownload(msg)} size="sm">
-                            <Download className="mr-2" />
-                            Download
-                          </Button>
-                          <Button onClick={() => handleDelete(msg.id)} variant="destructive" size="sm" disabled={isDeleting}>
-                            {isDeleting ? <Loader2 className="mr-2 animate-spin" /> : <Trash2 className="mr-2" />}
-                            Delete
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
+                </div>
+              ) : (
+                // Other User's Message (Received) - for context in a group chat, though not the primary use case here.
+                <div className="flex justify-start items-end gap-3 mb-4">
+                  <Avatar>
+                    <AvatarFallback>{getInitials(msg.userId)}</AvatarFallback>
+                  </Avatar>
+                   <div className="max-w-xs lg:max-w-md p-4 rounded-lg rounded-bl-none bg-muted">
+                      {renderMessageContent(msg)}
                   </div>
                 </div>
               )}
-               {msg.type === 'text' && (
-                 <div className="flex justify-start items-end gap-3">
-                   <Avatar>
-                      <AvatarFallback><Shield className="h-5 w-5"/></AvatarFallback>
-                  </Avatar>
-                  <div className="max-w-xs lg:max-w-md space-y-4">
-                    <div className="p-4 rounded-lg rounded-bl-none bg-muted">
-                      <p className="font-semibold text-sm mb-2">Message Stored.</p>
-                      <p className="text-xs text-muted-foreground">This is a temporary text message that expires in 1 hour.</p>
-                       <Button onClick={() => handleDelete(msg.id)} variant="destructive" size="sm" className="mt-4 w-full" disabled={isDeleting}>
-                          {isDeleting ? <Loader2 className="mr-2 animate-spin" /> : <Trash2 className="mr-2" />}
-                          Delete Message
-                        </Button>
+
+              {/* Vault's Reply to user's own messages */}
+              {msg.userId === user.username && (
+                <>
+                  {msg.type === 'file' && msg.shareableUrl && (
+                    <div className="flex justify-start items-end gap-3 mb-4">
+                      <Avatar>
+                          <AvatarFallback><Shield className="h-5 w-5"/></AvatarFallback>
+                      </Avatar>
+                      <div className="max-w-xs lg:max-w-md space-y-4">
+                        <div className="p-4 rounded-lg rounded-bl-none bg-muted">
+                          <p className="font-semibold text-sm mb-2">File Secured in Vault!</p>
+                          <p className="text-xs text-muted-foreground">
+                            Expires at: {new Date(new Date(msg.uploadedAt).getTime() + 60 * 60 * 1000).toLocaleTimeString()}
+                          </p>
+                          {msg.deviceInfo && (
+                            <div className="mt-4 p-2 border rounded-md bg-background/50 text-xs flex items-center gap-2">
+                              <Shield className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                              <p className="truncate text-muted-foreground" title={msg.deviceInfo}>
+                                From: {msg.deviceInfo}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                        <Card className="bg-muted">
+                          <CardContent className="p-4 space-y-4">
+                            <div>
+                              <Label htmlFor={`share-link-${msg.id}`}>Shareable Link</Label>
+                              <div className="flex gap-2 mt-1">
+                                <Input id={`share-link-${msg.id}`} type="text" readOnly value={msg.shareableUrl} className="bg-background h-9"/>
+                                <Button variant="outline" size="icon" onClick={() => handleCopyToClipboard(msg.shareableUrl!)} title="Copy Link" className="h-9 w-9">
+                                  <Copy className="h-4 w-4" />
+                                </Button>
+                                <Button variant="outline" size="icon" onClick={() => handleShareViaText(msg.shareableUrl!)} title="Share via Text" className="h-9 w-9">
+                                  <MessageSquareText className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                              <Button onClick={() => handleDownload(msg)} size="sm">
+                                <Download className="mr-2" />
+                                Download
+                              </Button>
+                              <Button onClick={() => handleDelete(msg.id)} variant="destructive" size="sm" disabled={isDeleting}>
+                                {isDeleting ? <Loader2 className="mr-2 animate-spin" /> : <Trash2 className="mr-2" />}
+                                Delete
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
                     </div>
-                  </div>
-                </div>
-               )}
-              </div>
+                  )}
+                  {msg.type === 'text' && (
+                    <div className="flex justify-start items-end gap-3 mb-4">
+                      <Avatar>
+                          <AvatarFallback><Shield className="h-5 w-5"/></AvatarFallback>
+                      </Avatar>
+                      <div className="max-w-xs lg:max-w-md space-y-4">
+                        <div className="p-4 rounded-lg rounded-bl-none bg-muted">
+                          <p className="font-semibold text-sm mb-2">Message Stored.</p>
+                          <p className="text-xs text-muted-foreground">This temporary message expires in 1 hour.</p>
+                          <Button onClick={() => handleDelete(msg.id)} variant="destructive" size="sm" className="mt-4 w-full" disabled={isDeleting}>
+                              {isDeleting ? <Loader2 className="mr-2 animate-spin" /> : <Trash2 className="mr-2" />}
+                              Delete Message
+                            </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
             ))
           ) : (
             <div className="flex justify-center items-center h-full">
