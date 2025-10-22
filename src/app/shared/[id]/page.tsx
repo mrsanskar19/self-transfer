@@ -21,7 +21,7 @@ interface Message {
 }
 
 export default function SharedFilePage() {
-  const { id: encodedId } = useParams();
+  const { id: fileId } = useParams();
   const router = useRouter();
   const { toast } = useToast();
   
@@ -30,47 +30,41 @@ export default function SharedFilePage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!encodedId) {
+    if (!fileId) {
       setError("No file ID provided.");
       setIsLoading(false);
       return;
     }
     
-    try {
-      const fileId = atob(encodedId as string);
-      const storedMessages = localStorage.getItem("ephemeral-messages");
-      
-      if (!storedMessages) {
-        setError("No files found. This link may have expired or is invalid.");
-        setIsLoading(false);
-        return;
-      }
-      
-      const messages: Message[] = JSON.parse(storedMessages);
-      const foundFile = messages.find(msg => msg.type === 'file' && msg.id === fileId);
-
-      if (foundFile) {
-        const oneHour = 60 * 60 * 1000;
-        if (Date.now() - new Date(foundFile.uploadedAt).getTime() > oneHour) {
-          setError("This file has expired and is no longer available.");
-          // Optionally, clean up the expired file from local storage
-          const updatedMessages = messages.filter(msg => msg.id !== fileId);
-          localStorage.setItem("ephemeral-messages", JSON.stringify(updatedMessages));
+    const fetchFile = async () => {
+      try {
+        const response = await fetch(`/api/messages/${fileId}`);
+        if(response.status === 404) {
+          setError("File not found. It may have been deleted or the link is incorrect.");
+        } else if (response.ok) {
+          const file: Message = await response.json();
+           const oneHour = 60 * 60 * 1000;
+          if (Date.now() - new Date(file.uploadedAt).getTime() > oneHour) {
+            setError("This file has expired and is no longer available.");
+          } else {
+            setFileData(file);
+          }
         } else {
-          setFileData(foundFile);
+           throw new Error("Failed to fetch file");
         }
-      } else {
-        setError("File not found. It may have been deleted or the link is incorrect.");
+      } catch (e) {
+        setError("Invalid share link or error fetching file.");
+        console.error("Error decoding or finding file:", e);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (e) {
-      setError("Invalid share link.");
-      console.error("Error decoding or finding file:", e);
-    } finally {
-      setIsLoading(false);
     }
-  }, [encodedId]);
+    
+    fetchFile();
 
-  const handleDownload = () => {
+  }, [fileId]);
+
+  const handleDownload = async () => {
     if (!fileData || !fileData.url || !fileData.name) return;
 
     const link = document.createElement('a');
@@ -82,12 +76,11 @@ export default function SharedFilePage() {
     
     toast({ title: "Downloaded", description: "File downloaded. It has now been deleted from the vault." });
 
-    // Delete the file from local storage
-    const storedMessages = localStorage.getItem("ephemeral-messages");
-    if (storedMessages) {
-      const messages = JSON.parse(storedMessages);
-      const updatedMessages = messages.filter((msg: Message) => msg.id !== fileData.id);
-      localStorage.setItem("ephemeral-messages", JSON.stringify(updatedMessages));
+    // Delete the file from backend
+    try {
+      await fetch(`/api/messages/${fileId}`, { method: 'DELETE' });
+    } catch (e) {
+      console.error("Failed to delete file from backend", e);
     }
     
     // Redirect to home page after download and deletion
@@ -141,5 +134,3 @@ export default function SharedFilePage() {
     </div>
   );
 }
-
-    

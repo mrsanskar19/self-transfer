@@ -1,17 +1,16 @@
 
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Loader2, UploadCloud, File as FileIcon, Download, Trash2, AlertCircle, Copy, MessageSquareText, Shield, Paperclip, Send } from "lucide-react";
+import { Loader2, File as FileIcon, Download, Trash2, AlertCircle, Copy, MessageSquareText, Shield, Paperclip, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
@@ -21,8 +20,9 @@ interface Message {
   id: string;
   type: MessageType;
   content: string;
+  userId: string;
   name?: string;
-  url?: string;
+  url?: string; // This will be a base64 data URI
   shareableUrl?: string;
   uploadedAt: string;
   deviceInfo?: string;
@@ -41,59 +41,49 @@ export default function DashboardPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (!loading && !user) {
-      router.push("/login");
-    }
-  }, [user, loading, router]);
-  
-  useEffect(() => {
+  const fetchMessages = useCallback(async () => {
+    if (!user) return;
+    setIsLoadingMessages(true);
     try {
-      const storedMessages = localStorage.getItem("ephemeral-messages");
-      if (storedMessages) {
-        const parsedMessages: Message[] = JSON.parse(storedMessages);
-        const oneHour = 60 * 60 * 1000;
+      const response = await fetch('/api/messages');
+      if (response.ok) {
+        let data: Message[] = await response.json();
         
-        const validMessages = parsedMessages.filter(msg => {
-          if (msg.type === 'file') {
-            const isExpired = Date.now() - new Date(msg.uploadedAt).getTime() > oneHour;
-            if (isExpired) {
-               toast({
-                 title: "File Expired",
-                 description: `Your file "${msg.name}" was older than 1 hour and has been removed.`,
-                 variant: "destructive"
-               });
-               // Revoke blob URL to free memory
-               if (msg.url?.startsWith('blob:')) {
-                  URL.revokeObjectURL(msg.url);
-               }
-               return false;
-            }
+        const oneHour = 60 * 60 * 1000;
+        const now = Date.now();
+        
+        const validMessages = data.filter(msg => {
+          if (now - new Date(msg.uploadedAt).getTime() > oneHour) {
+            // Tell the backend to delete this expired message
+            fetch(`/api/messages/${msg.id}`, { method: 'DELETE' });
+            return false;
           }
           return true;
         });
 
         setMessages(validMessages);
-        if (validMessages.length !== parsedMessages.length) {
-          localStorage.setItem("ephemeral-messages", JSON.stringify(validMessages));
-        }
+      } else {
+        toast({ title: "Error", description: "Failed to load messages.", variant: "destructive" });
       }
-    } catch(e) {
-      console.error("Failed to parse messages from local storage", e);
+    } catch (error) {
+      console.error("Failed to fetch messages:", error);
+      toast({ title: "Error", description: "An error occurred while fetching messages.", variant: "destructive" });
+    } finally {
+      setIsLoadingMessages(false);
     }
-    setIsLoadingMessages(false);
-  }, [toast]);
-  
+  }, [user, toast]);
+
+
   useEffect(() => {
-    // Cleanup blob URLs on unmount
-    return () => {
-      messages.forEach(msg => {
-        if (msg.type === 'file' && msg.url?.startsWith('blob:')) {
-          URL.revokeObjectURL(msg.url);
-        }
-      });
-    };
-  }, [messages]);
+    if (!loading && !user) {
+      router.push("/login");
+    }
+    if (user) {
+      fetchMessages();
+      const interval = setInterval(fetchMessages, 30000); // Poll for new/expired messages
+      return () => clearInterval(interval);
+    }
+  }, [user, loading, router, fetchMessages]);
 
   const handleFileTrigger = () => {
     fileInputRef.current?.click();
@@ -103,51 +93,66 @@ export default function DashboardPage() {
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
       setFile(selectedFile);
-      setMessage(selectedFile.name); // Show file name in input
+      setMessage(selectedFile.name); 
     }
   };
+  
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = error => reject(error);
+    });
+  }
 
   const handleSend = async () => {
     if (!file && !message.trim()) return;
+    if (!user) return;
 
-    let newMessage: Message;
+    let newMessagePayload: Omit<Message, 'id' | 'shareableUrl' | 'uploadedAt'>;
+    
+    setIsUploading(true);
 
     if (file) {
-      setIsUploading(true);
-      // Simulate upload delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      const objectUrl = URL.createObjectURL(file);
-      const fileId = `${Date.now()}-${file.name}`;
-      const shareableUrl = `${window.location.origin}/shared/${btoa(fileId)}`;
-
-      newMessage = {
-        id: fileId,
+      const dataUrl = await fileToBase64(file);
+      newMessagePayload = {
         type: 'file',
         content: file.name,
         name: file.name,
-        url: objectUrl,
-        shareableUrl: shareableUrl,
-        uploadedAt: new Date().toISOString(),
+        url: dataUrl,
+        userId: user.username,
         deviceInfo: navigator.userAgent,
       };
-
-      setIsUploading(false);
-      setFile(null);
-      toast({ title: "Success", description: "Your file is now in the vault." });
     } else {
-      newMessage = {
-        id: `${Date.now()}`,
+      newMessagePayload = {
         type: 'text',
         content: message,
-        uploadedAt: new Date().toISOString(),
+        userId: user.username,
       };
     }
     
-    const updatedMessages = [...messages, newMessage];
-    setMessages(updatedMessages);
-    localStorage.setItem("ephemeral-messages", JSON.stringify(updatedMessages));
-    setMessage("");
+    try {
+      const response = await fetch('/api/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newMessagePayload),
+      });
+
+      if (response.ok) {
+        const createdMessage = await response.json();
+        setMessages(prev => [...prev, createdMessage]);
+        toast({ title: "Success", description: "Your message is in the vault." });
+      } else {
+        throw new Error('Failed to send message');
+      }
+    } catch (error) {
+       toast({ title: "Error", description: "Could not send message.", variant: "destructive" });
+    } finally {
+        setIsUploading(false);
+        setFile(null);
+        setMessage("");
+    }
   };
 
   const handleDownload = (msg: Message) => {
@@ -162,23 +167,26 @@ export default function DashboardPage() {
     
     toast({ title: "Downloaded", description: "File downloaded. It will now be deleted." });
     
-    handleDelete(msg.id, msg.url);
+    handleDelete(msg.id);
   };
 
-  const handleDelete = async (messageId: string, url?: string) => {
+  const handleDelete = async (messageId: string) => {
     setIsDeleting(true);
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    const updatedMessages = messages.filter(m => m.id !== messageId);
-    setMessages(updatedMessages);
-    localStorage.setItem("ephemeral-messages", JSON.stringify(updatedMessages));
-    
-    if (url?.startsWith('blob:')) {
-      URL.revokeObjectURL(url);
+    try {
+      const response = await fetch(`/api/messages/${messageId}`, {
+        method: 'DELETE',
+      });
+      if (response.ok) {
+        setMessages(prev => prev.filter(m => m.id !== messageId));
+        toast({ title: "Deleted", description: "The message has been successfully deleted." });
+      } else {
+        throw new Error("Failed to delete");
+      }
+    } catch (error) {
+      toast({ title: "Error", description: "Could not delete message.", variant: "destructive" });
+    } finally {
+      setIsDeleting(false);
     }
-
-    setIsDeleting(false);
-    toast({ title: "Deleted", description: "The message has been successfully deleted." });
   };
 
   const handleCopyToClipboard = (shareableUrl: string) => {
@@ -280,7 +288,7 @@ export default function DashboardPage() {
                             <Download className="mr-2" />
                             Download
                           </Button>
-                          <Button onClick={() => handleDelete(msg.id, msg.url)} variant="destructive" size="sm" disabled={isDeleting}>
+                          <Button onClick={() => handleDelete(msg.id)} variant="destructive" size="sm" disabled={isDeleting}>
                             {isDeleting ? <Loader2 className="mr-2 animate-spin" /> : <Trash2 className="mr-2" />}
                             Delete
                           </Button>
@@ -298,7 +306,7 @@ export default function DashboardPage() {
                   <div className="max-w-xs lg:max-w-md space-y-4">
                     <div className="p-4 rounded-lg rounded-bl-none bg-muted">
                       <p className="font-semibold text-sm mb-2">Message Stored.</p>
-                      <p className="text-xs text-muted-foreground">This is a temporary text message.</p>
+                      <p className="text-xs text-muted-foreground">This is a temporary text message that expires in 1 hour.</p>
                        <Button onClick={() => handleDelete(msg.id)} variant="destructive" size="sm" className="mt-4 w-full" disabled={isDeleting}>
                           {isDeleting ? <Loader2 className="mr-2 animate-spin" /> : <Trash2 className="mr-2" />}
                           Delete Message
@@ -355,5 +363,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    

@@ -36,7 +36,7 @@ const formSchema = z.object({
 export default function SignupPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const { login } = useAuth();
+  const { signup } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -50,7 +50,7 @@ export default function SignupPage() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
     try {
-      await login(values.username, values.password);
+      await signup(values.username, values.password);
       toast({
         title: "Account Created",
         description: "You've been successfully signed up and logged in.",
@@ -59,7 +59,7 @@ export default function SignupPage() {
     } catch (error: any) {
       toast({
         title: "Signup Failed",
-        description: "This is a demo. Please use username 'test' and password 'test123' to sign up.",
+        description: error.message || "An unexpected error occurred.",
         variant: "destructive",
       });
     } finally {

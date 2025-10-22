@@ -11,6 +11,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   login: (username: string, pass: string) => Promise<void>;
+  signup: (username: string, pass: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -18,6 +19,7 @@ export const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
   login: async () => {},
+  signup: async () => {},
   logout: () => {},
 });
 
@@ -28,36 +30,58 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     try {
-      const storedUser = localStorage.getItem('ephemeral-user');
+      const storedUser = sessionStorage.getItem('ephemeral-user');
       if (storedUser) {
         setUser(JSON.parse(storedUser));
       }
     } catch (e) {
-      console.error("Failed to parse user from local storage", e);
+      console.error("Failed to parse user from session storage", e);
     }
     setLoading(false);
   }, []);
 
   const login = useCallback(async (username: string, pass: string) => {
-    // In a real app, this would be a call to an authentication service.
-    // For this mock, we're just checking for a hardcoded user.
-    if (username.toLowerCase() === 'test' && pass === 'test123') {
+    const response = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password: pass }),
+    });
+
+    if (response.ok) {
       const userData = { username };
-      localStorage.setItem('ephemeral-user', JSON.stringify(userData));
+      sessionStorage.setItem('ephemeral-user', JSON.stringify(userData));
       setUser(userData);
     } else {
-      throw new Error('Invalid credentials. Use test/test123');
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Login failed');
+    }
+  }, []);
+
+  const signup = useCallback(async (username: string, pass: string) => {
+    const response = await fetch('/api/auth/signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password: pass }),
+    });
+
+    if (response.ok) {
+      const userData = { username };
+      sessionStorage.setItem('ephemeral-user', JSON.stringify(userData));
+      setUser(userData);
+    } else {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Signup failed');
     }
   }, []);
 
   const logout = useCallback(() => {
-    localStorage.removeItem('ephemeral-user');
+    sessionStorage.removeItem('ephemeral-user');
     setUser(null);
     router.push('/');
   }, [router]);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, signup, logout }}>
       {children}
     </AuthContext.Provider>
   );
