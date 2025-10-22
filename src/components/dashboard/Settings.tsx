@@ -3,7 +3,7 @@ import { SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Message, DeviceInfo } from "@/lib/types";
-import { Monitor, User } from "lucide-react";
+import { Monitor } from "lucide-react";
 
 interface SettingsPageProps {
     messages: Message[];
@@ -15,8 +15,12 @@ export default function SettingsPage({ messages }: SettingsPageProps) {
     const getActiveDevices = (): DeviceInfo[] => {
         const devices = new Map<string, DeviceInfo>();
         messages.forEach(msg => {
-            if (msg.deviceInfo && !devices.has(msg.deviceInfo.ip)) {
-                devices.set(msg.deviceInfo.ip, msg.deviceInfo);
+            if (msg.deviceInfo) {
+                // Create a unique key from IP and UserAgent
+                const deviceKey = `${msg.deviceInfo.ip}-${msg.deviceInfo.userAgent}`;
+                if (!devices.has(deviceKey)) {
+                    devices.set(deviceKey, msg.deviceInfo);
+                }
             }
         });
         return Array.from(devices.values());

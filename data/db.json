@@ -1,3 +1,4 @@
+
 {
   "users": [
     {
@@ -16,7 +17,7 @@
         "ip": "127.0.0.1"
       },
       "type": "text",
-      "content": "fdhfhd",
+      "content": "Welcome to the vault!",
       "userId": "sampleuser"
     }
   ]
