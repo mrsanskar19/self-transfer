@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -15,6 +14,11 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 type MessageType = 'text' | 'file';
 
+interface DeviceInfo {
+  userAgent: string;
+  ip: string;
+}
+
 interface Message {
   id: string;
   type: MessageType;
@@ -24,7 +28,7 @@ interface Message {
   url?: string;
   shareableUrl?: string;
   uploadedAt: string;
-  deviceInfo?: string;
+  deviceInfo?: DeviceInfo;
 }
 
 // SSE event can be a new message or a delete notification
@@ -167,14 +171,12 @@ export default function DashboardPage() {
             name: file.name,
             url: dataUrl,
             userId: user.username,
-            deviceInfo: navigator.userAgent,
           };
         } else {
           newMessagePayload = {
             type: 'text',
             content: message,
             userId: user.username,
-            deviceInfo: navigator.userAgent,
           };
         }
         
@@ -273,16 +275,14 @@ export default function DashboardPage() {
                      </div>
                      <div className="flex items-center gap-3">
                         {msg.deviceInfo && (
-                            <div className="text-xs text-muted-foreground flex items-center gap-1.5" title={msg.deviceInfo}>
+                            <div className="text-xs text-muted-foreground flex items-center gap-1.5" title={`${msg.deviceInfo.userAgent} (IP: ${msg.deviceInfo.ip})`}>
                                 <Shield size={12} />
                                 <span>From your device</span>
                             </div>
                         )}
-                        {msg.type === 'text' && (
-                             <Button onClick={() => handleDelete(msg.id)} variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive hover:bg-destructive/10" disabled={deletingId === msg.id}>
-                                {deletingId === msg.id ? <Loader2 className="animate-spin" size={12}/> : <Trash2 size={12} />}
-                             </Button>
-                        )}
+                        <Button onClick={() => handleDelete(msg.id)} variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive hover:bg-destructive/10" disabled={deletingId === msg.id}>
+                            {deletingId === msg.id ? <Loader2 className="animate-spin" size={12}/> : <Trash2 size={12} />}
+                        </Button>
                       </div>
                   </div>
                   <Avatar className="h-8 w-8">
@@ -300,7 +300,7 @@ export default function DashboardPage() {
                             {renderMessageContent(msg)}
                         </div>
                          {msg.deviceInfo && (
-                            <div className="text-xs text-muted-foreground flex items-center gap-1.5" title={msg.deviceInfo}>
+                            <div className="text-xs text-muted-foreground flex items-center gap-1.5" title={`${msg.deviceInfo.userAgent} (IP: ${msg.deviceInfo.ip})`}>
                                 <Shield size={12} />
                                 <span>From {msg.userId}</span>
                             </div>

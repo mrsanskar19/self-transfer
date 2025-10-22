@@ -40,6 +40,7 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const db = await getDb();
+    const headerList = headers();
     
     const id = Date.now().toString();
     const shareableUrl = `${new URL(request.url).origin}/shared/${id}`;
@@ -48,6 +49,10 @@ export async function POST(request: Request) {
       id,
       uploadedAt: new Date().toISOString(),
       shareableUrl,
+      deviceInfo: {
+        userAgent: headerList.get('user-agent') || 'Unknown',
+        ip: headerList.get('x-forwarded-for') || request.headers.get('host')?.split(':')[0] || 'Unknown',
+      },
       ...body
     };
 
