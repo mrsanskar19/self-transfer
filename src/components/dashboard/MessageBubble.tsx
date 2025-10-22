@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import { Message } from "@/lib/types";
 import { Avatar, AvatarFallback } from "../ui/avatar";
@@ -18,29 +18,37 @@ interface MessageBubbleProps {
 
 const getInitials = (name: string) => name?.[0]?.toUpperCase() ?? 'U';
 
-const renderMessageContent = (msg: Message, onDownload: () => void) => {
-    if (msg.type === 'file' && msg.name?.match(/\.(jpeg|jpg|gif|png)$/)) {
-        return <FileDisplay message={msg} onDownload={onDownload} isImage={true} />;
-    }
-    if (msg.type === 'file') {
-        return <FileDisplay message={msg} onDownload={onDownload} isImage={false} />;
-    }
-    return <p className="text-sm">{msg.content}</p>;
-};
-
-const FileDisplay = ({ message, onDownload, isImage }: { message: Message, onDownload: () => void, isImage: boolean }) => (
-    <div className="flex items-center gap-3 bg-primary/10 dark:bg-primary/20 p-3 rounded-lg">
-        {isImage ? <FileIcon className="h-6 w-6 flex-shrink-0 text-primary-foreground/80" /> : <FileIcon className="h-6 w-6 flex-shrink-0" />}
-        <p className="font-medium truncate" title={message.name}>{message.name}</p>
-        <Button onClick={onDownload} variant="ghost" size="icon" className="h-7 w-7 text-primary-foreground/80 hover:text-primary-foreground">
-            <Download size={16} />
-        </Button>
-    </div>
-);
-
 export function MessageBubble({ message, isOwnMessage }: MessageBubbleProps) {
     const [deletingId, setDeletingId] = useState<string | null>(null);
+    const [imageUrl, setImageUrl] = useState<string | null>(null);
+    const [isLoadingUrl, setIsLoadingUrl] = useState(false);
     const { toast } = useToast();
+
+    const isImageFile = message.type === 'file' && message.name?.match(/\.(jpeg|jpg|gif|png|webp)$/i);
+
+    useEffect(() => {
+        if (isImageFile && !isOwnMessage) {
+            const fetchImageUrl = async () => {
+                setIsLoadingUrl(true);
+                try {
+                    const res = await fetch(`/api/messages/${message.id}`);
+                    if (res.ok) {
+                        const fullMessage: Message = await res.json();
+                        if (fullMessage.url) {
+                            setImageUrl(fullMessage.url);
+                        }
+                    }
+                } catch (e) {
+                    // Do nothing, just won't show preview
+                } finally {
+                    setIsLoadingUrl(false);
+                }
+            };
+            fetchImageUrl();
+        } else if (isImageFile && isOwnMessage && message.url) {
+            setImageUrl(message.url);
+        }
+    }, [message.id, message.url, isImageFile, isOwnMessage]);
 
     const handleDelete = async (messageId: string) => {
         setDeletingId(messageId);
@@ -59,19 +67,22 @@ export function MessageBubble({ message, isOwnMessage }: MessageBubbleProps) {
     };
     
     const handleDownload = async () => {
-        // Fetch full message data including the URL
-        const res = await fetch(`/api/messages/${message.id}`);
-        if (!res.ok) {
-            toast({ title: "Error", description: "Could not retrieve file for download.", variant: "destructive" });
-            return;
+        let fileUrl = message.url;
+        if (!fileUrl) {
+            const res = await fetch(`/api/messages/${message.id}`);
+            if (!res.ok) {
+                toast({ title: "Error", description: "Could not retrieve file for download.", variant: "destructive" });
+                return;
+            }
+            const fullMessage: Message = await res.json();
+            fileUrl = fullMessage.url;
         }
-        const fullMessage: Message = await res.json();
         
-        if (!fullMessage.url || !fullMessage.name) return;
+        if (!fileUrl || !message.name) return;
 
         const link = document.createElement('a');
-        link.href = fullMessage.url;
-        link.setAttribute('download', fullMessage.name);
+        link.href = fileUrl;
+        link.setAttribute('download', message.name);
         document.body.appendChild(link);
         link.click();
         link.parentNode?.removeChild(link);
@@ -91,6 +102,34 @@ export function MessageBubble({ message, isOwnMessage }: MessageBubbleProps) {
         const smsLink = `sms:?&body=${encodeURIComponent(messageBody)}`;
         window.location.href = smsLink;
     };
+    
+    const renderMessageContent = () => {
+        if (isImageFile) {
+            return <FileDisplay message={message} onDownload={handleDownload} isImage={true} imageUrl={imageUrl} isLoadingUrl={isLoadingUrl} />;
+        }
+        if (message.type === 'file') {
+            return <FileDisplay message={message} onDownload={handleDownload} isImage={false} imageUrl={null} isLoadingUrl={false} />;
+        }
+        return <p className="text-sm">{message.content}</p>;
+    };
+
+    const FileDisplay = ({ message, onDownload, isImage, imageUrl, isLoadingUrl }: { message: Message, onDownload: () => void, isImage: boolean, imageUrl: string | null, isLoadingUrl: boolean }) => (
+        <div className="space-y-2">
+            {isImage && (imageUrl || isLoadingUrl) && (
+                 <div className="relative w-full aspect-video rounded-lg overflow-hidden bg-muted/50">
+                    {isLoadingUrl && <div className="absolute inset-0 flex items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>}
+                    {imageUrl && <Image src={imageUrl} alt={message.name || 'Image preview'} layout="fill" objectFit="contain" />}
+                </div>
+            )}
+            <div className="flex items-center gap-3 bg-primary/10 dark:bg-primary/20 p-3 rounded-lg">
+                <FileIcon className="h-6 w-6 flex-shrink-0 text-primary-foreground/80" />
+                <p className="font-medium truncate flex-1" title={message.name}>{message.name}</p>
+                <Button onClick={onDownload} variant="ghost" size="icon" className="h-7 w-7 text-primary-foreground/80 hover:text-primary-foreground">
+                    <Download size={16} />
+                </Button>
+            </div>
+        </div>
+    );
 
     if (isOwnMessage) {
         return (
@@ -98,12 +137,12 @@ export function MessageBubble({ message, isOwnMessage }: MessageBubbleProps) {
                 <div className="flex justify-end items-start gap-3 mb-4">
                     <div className="flex flex-col items-end gap-1 max-w-xs lg:max-w-md">
                         <div className="p-3 rounded-2xl rounded-br-none bg-primary text-primary-foreground">
-                            {renderMessageContent(message, handleDownload)}
+                            {renderMessageContent()}
                         </div>
                         <div className="flex items-center gap-3 text-xs text-muted-foreground">
                              {message.seen ? <CheckCheck size={14} className="text-blue-500" /> : <Check size={14} />}
                             {message.deviceInfo && (
-                                <div className="flex items-center gap-1.5" title={`${message.deviceInfo.userAgent} (IP: ${message.deviceInfo.ip})`}>
+                                <div className="flex items-center gap-1.5" title={`User Agent: ${message.deviceInfo.userAgent}\nIP: ${message.deviceInfo.ip}`}>
                                     <Shield size={12} />
                                     <span>From your device</span>
                                 </div>
@@ -159,10 +198,10 @@ export function MessageBubble({ message, isOwnMessage }: MessageBubbleProps) {
             </Avatar>
             <div className="flex flex-col items-start gap-1 max-w-xs lg:max-w-md">
                 <div className="p-3 rounded-2xl rounded-bl-none bg-background dark:bg-muted">
-                    {renderMessageContent(message, handleDownload)}
+                    {renderMessageContent()}
                 </div>
                 {message.deviceInfo && (
-                    <div className="text-xs text-muted-foreground flex items-center gap-1.5" title={`${message.deviceInfo.userAgent} (IP: ${message.deviceInfo.ip})`}>
+                     <div className="text-xs text-muted-foreground flex items-center gap-1.5" title={`User Agent: ${message.deviceInfo.userAgent}\nIP: ${message.deviceInfo.ip}`}>
                         <Shield size={12} />
                         <span>From {message.userId}</span>
                     </div>
