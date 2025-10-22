@@ -21,4 +21,7 @@ export interface Message {
 
 export interface User {
   username: string;
+  name?: string;
+  email?: string;
+  loginedDevices?: DeviceInfo[];
 }

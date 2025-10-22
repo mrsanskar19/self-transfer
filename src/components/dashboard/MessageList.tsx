@@ -22,11 +22,11 @@ export function MessageList({ messages, currentUser }: MessageListProps) {
     }, [messages]);
 
     return (
-        <>
+        <div className="space-y-4">
             {messages.map(msg => (
                 <MessageBubble key={msg.id} message={msg} isOwnMessage={msg.userId === currentUser.username} />
             ))}
             <div ref={messagesEndRef} />
-        </>
+        </div>
     )
 }

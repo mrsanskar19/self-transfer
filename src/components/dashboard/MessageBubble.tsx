@@ -6,10 +6,16 @@ import Image from "next/image";
 import { Message } from "@/lib/types";
 import { Avatar, AvatarFallback } from "../ui/avatar";
 import { Button } from "../ui/button";
-import { Loader2, Trash2, Shield, Copy, MessageSquareText, File as FileIcon, Download, Check, CheckCheck } from "lucide-react";
+import { Loader2, Trash2, Shield, Copy, MessageSquareText, File as FileIcon, Download, Check, CheckCheck, MoreVertical, Pencil, Flag } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "../ui/card";
 import { Input } from "../ui/input";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 interface MessageBubbleProps {
     message: Message;
@@ -128,78 +134,88 @@ export function MessageBubble({ message, isOwnMessage }: MessageBubbleProps) {
             </div>
         </div>
     );
-
+    
     const hasBeenSeen = message.seenBy && message.seenBy.length > 0 && message.seenBy.some(ip => ip !== message.deviceInfo?.ip);
+    const ipDisplay = message.deviceInfo?.ip?.replace('::ffff:', '');
+    const timeDisplay = new Date(message.uploadedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-    if (isOwnMessage) {
-        return (
-            <>
-                <div className="flex justify-end items-start gap-3 mb-4">
-                    <div className="flex flex-col items-end gap-1 max-w-xs lg:max-w-md">
-                        <div className="p-3 rounded-2xl rounded-br-none bg-primary text-primary-foreground">
-                            {renderMessageContent()}
-                        </div>
-                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                            {hasBeenSeen ? <CheckCheck size={14} className="text-blue-500" /> : <Check size={14} />}
-                            <span className="truncate" title={message.deviceInfo?.ip}>
-                                You ({message.deviceInfo?.ip?.replace('::ffff:', '')})
-                            </span>
-                            <Button onClick={() => handleDelete(message.id)} variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive hover:bg-destructive/10" disabled={deletingId === message.id}>
-                                {deletingId === message.id ? <Loader2 className="animate-spin" size={12} /> : <Trash2 size={12} />}
-                            </Button>
-                        </div>
-                    </div>
-                    <Avatar className="h-8 w-8">
-                        <AvatarFallback>{getInitials(message.userId)}</AvatarFallback>
-                    </Avatar>
-                </div>
-                 {message.type === 'file' && message.shareableUrl && (
-                    <div className="flex justify-start items-end gap-3 mb-4">
-                        <Avatar className="h-8 w-8">
-                            <AvatarFallback><Shield className="h-4 w-4" /></AvatarFallback>
-                        </Avatar>
-                        <div className="max-w-xs lg:max-w-md space-y-2">
-                            <Card className="bg-background dark:bg-muted">
-                                <CardContent className="p-3 space-y-3">
-                                    <div>
-                                        <p className="font-semibold text-sm mb-1">Shareable Link</p>
-                                        <p className="text-xs text-muted-foreground">
-                                            Expires: {new Date(new Date(message.uploadedAt).getTime() + 60 * 60 * 1000).toLocaleTimeString()}
-                                        </p>
-                                    </div>
-                                    <div className="flex gap-2">
-                                        <Input id={`share-link-${message.id}`} type="text" readOnly value={message.shareableUrl} className="bg-background h-9 text-xs" />
-                                        <Button variant="outline" size="icon" onClick={() => handleCopyToClipboard(message.shareableUrl!)} title="Copy Link" className="h-9 w-9">
-                                            <Copy className="h-4 w-4" />
-                                        </Button>
-                                        <Button variant="outline" size="icon" onClick={() => handleShareViaText(message.shareableUrl!)} title="Share via Text" className="h-9 w-9">
-                                            <MessageSquareText className="h-4 w-4" />
-                                        </Button>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        </div>
-                    </div>
-                 )}
-            </>
-        );
-    }
+    const containerClasses = `flex items-start gap-3 mb-1 ${isOwnMessage ? 'justify-end' : 'justify-start'}`;
 
     return (
-        <div className="flex justify-start items-start gap-3 mb-4">
-            <Avatar className="h-8 w-8">
-                <AvatarFallback>{getInitials(message.userId)}</AvatarFallback>
-            </Avatar>
-            <div className="flex flex-col items-start gap-1 max-w-xs lg:max-w-md">
-                <div className="p-3 rounded-2xl rounded-bl-none bg-background dark:bg-muted">
-                    {renderMessageContent()}
-                </div>
-                {message.deviceInfo && (
-                     <div className="text-xs text-muted-foreground flex items-center gap-1.5" title={message.deviceInfo.userAgent}>
-                        <span>{message.userId} ({message.deviceInfo.ip?.replace('::ffff:', '')})</span>
+        <>
+            <div className={containerClasses}>
+                {!isOwnMessage && (
+                     <Avatar className="h-8 w-8">
+                        <AvatarFallback>{getInitials(message.userId)}</AvatarFallback>
+                    </Avatar>
+                )}
+                <div className={`flex flex-col gap-1 max-w-xs lg:max-w-md ${isOwnMessage ? 'items-end' : 'items-start'}`}>
+                    <div className={`p-3 rounded-2xl ${isOwnMessage ? 'rounded-br-none bg-primary text-primary-foreground' : 'rounded-bl-none bg-background dark:bg-muted'}`}>
+                        {renderMessageContent()}
                     </div>
+                     <div className="flex items-center gap-3 text-xs text-muted-foreground px-2">
+                         <span>{ipDisplay}</span>
+                         <span>{timeDisplay}</span>
+                        {isOwnMessage && (hasBeenSeen ? <CheckCheck size={14} className="text-blue-500" /> : <Check size={14} />)}
+                    </div>
+                </div>
+                
+                 <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                         <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+                            <MoreVertical size={16} />
+                         </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                        {isOwnMessage && (
+                            <DropdownMenuItem onClick={() => handleDelete(message.id)}>
+                                {deletingId === message.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+                                Delete
+                            </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem disabled>
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem disabled>
+                            <Flag className="mr-2 h-4 w-4" />
+                            Report
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+
+                {isOwnMessage && (
+                     <Avatar className="h-8 w-8">
+                        <AvatarFallback>{getInitials(message.userId)}</AvatarFallback>
+                    </Avatar>
                 )}
             </div>
-        </div>
+
+            {isOwnMessage && message.type === 'file' && message.shareableUrl && (
+                <div className="flex justify-end items-end gap-3 mb-4">
+                    <div className="max-w-xs lg:max-w-md space-y-2">
+                        <Card className="bg-background dark:bg-muted ml-11">
+                            <CardContent className="p-3 space-y-3">
+                                <div>
+                                    <p className="font-semibold text-sm mb-1 flex items-center gap-2"><Shield size={14} /> Shareable Link</p>
+                                    <p className="text-xs text-muted-foreground">
+                                        Expires: {new Date(new Date(message.uploadedAt).getTime() + 60 * 60 * 1000).toLocaleTimeString()}
+                                    </p>
+                                </div>
+                                <div className="flex gap-2">
+                                    <Input id={`share-link-${message.id}`} type="text" readOnly value={message.shareableUrl} className="bg-background h-9 text-xs" />
+                                    <Button variant="outline" size="icon" onClick={() => handleCopyToClipboard(message.shareableUrl!)} title="Copy Link" className="h-9 w-9">
+                                        <Copy className="h-4 w-4" />
+                                    </Button>
+                                    <Button variant="outline" size="icon" onClick={() => handleShareViaText(message.shareableUrl!)} title="Share via Text" className="h-9 w-9">
+                                        <MessageSquareText className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+                </div>
+             )}
+        </>
     );
 }
