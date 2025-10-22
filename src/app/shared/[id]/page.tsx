@@ -8,17 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2, FileIcon, Download, AlertCircle, ShieldX } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
-
-interface Message {
-  id: string;
-  type: 'file';
-  content: string;
-  name?: string;
-  url?: string;
-  shareableUrl?: string;
-  uploadedAt: string;
-  deviceInfo?: string;
-}
+import { Message } from '@/lib/types';
 
 export default function SharedFilePage() {
   const { id: fileId } = useParams();
@@ -46,6 +36,8 @@ export default function SharedFilePage() {
            const oneHour = 60 * 60 * 1000;
           if (Date.now() - new Date(file.uploadedAt).getTime() > oneHour) {
             setError("This file has expired and is no longer available.");
+            // Proactively delete if expired
+            await fetch(`/api/messages/${fileId}`, { method: 'DELETE' });
           } else {
             setFileData(file);
           }
@@ -83,8 +75,11 @@ export default function SharedFilePage() {
       console.error("Failed to delete file from backend", e);
     }
     
-    // Redirect to home page after download and deletion
-    router.push('/');
+    // Show a message and then redirect
+    setError("This link is now invalid. You will be redirected.");
+    setTimeout(() => {
+      router.push('/');
+    }, 3000);
   };
 
   return (
@@ -125,7 +120,7 @@ export default function SharedFilePage() {
               </Alert>
               <Button className="w-full" onClick={handleDownload}>
                 <Download className="mr-2" />
-                Download and Delete File
+                Download and Invalidate Link
               </Button>
             </div>
           ) : null}

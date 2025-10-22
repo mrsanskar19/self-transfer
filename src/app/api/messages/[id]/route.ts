@@ -24,6 +24,7 @@ async function saveDb(data: any) {
   await fs.writeFile(dbPath, JSON.stringify(data, null, 2));
 }
 
+// Get full message details, including file content (URL)
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   try {
     const db = await getDb();

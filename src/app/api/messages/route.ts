@@ -1,8 +1,10 @@
+
 import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import path from 'path';
 import fs from 'fs/promises';
 import { broadcastMessage } from './events/route';
+import { Message } from '@/lib/types';
 
 const dbPath = path.join(process.cwd(), 'data', 'db.json');
 
@@ -25,10 +27,16 @@ async function saveDb(data: any) {
   await fs.writeFile(dbPath, JSON.stringify(data, null, 2));
 }
 
+// Get all messages but WITHOUT file content (url)
 export async function GET(request: Request) {
     try {
         const db = await getDb();
-        return NextResponse.json(db.messages);
+        // Don't send file content (url) on the main GET request
+        const messagesWithoutContent = db.messages.map((m: any) => {
+            const { url, ...rest } = m;
+            return rest;
+        });
+        return NextResponse.json(messagesWithoutContent);
     } catch (error) {
         console.error('GET messages error:', error);
         return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
@@ -43,12 +51,13 @@ export async function POST(request: Request) {
     const headerList = headers();
     
     const id = Date.now().toString();
-    const shareableUrl = `${new URL(request.url).origin}/shared/${id}`;
+    const shareableUrl = body.type === 'file' ? `${new URL(request.url).origin}/shared/${id}` : undefined;
 
-    const newMessage = {
+    const newMessage: Message = {
       id,
       uploadedAt: new Date().toISOString(),
       shareableUrl,
+      seen: false,
       deviceInfo: {
         userAgent: headerList.get('user-agent') || 'Unknown',
         ip: headerList.get('x-forwarded-for') || request.headers.get('host')?.split(':')[0] || 'Unknown',
@@ -59,10 +68,11 @@ export async function POST(request: Request) {
     db.messages.push(newMessage);
     await saveDb(db);
 
-    // Broadcast the new message to all connected SSE clients
-    broadcastMessage(newMessage);
+    // Don't broadcast the full file content (url)
+    const { url, ...messageToBroadcast } = newMessage;
+    broadcastMessage(messageToBroadcast);
 
-    return NextResponse.json(newMessage, { status: 201 });
+    return NextResponse.json(messageToBroadcast, { status: 201 });
   } catch (error) {
     console.error('POST message error:', error);
     return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
