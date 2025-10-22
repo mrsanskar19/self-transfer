@@ -55,11 +55,9 @@ export default function DashboardPage() {
             toast({ title: "Error", description: "Failed to load messages.", variant: "destructive" });
           }
 
-          const ipResponse = await fetch('https://ipapi.co/json/');
-          if (ipResponse.ok) {
-            const ipData = await ipResponse.json();
-            setDeviceInfo({ ip: ipData.ip, userAgent: navigator.userAgent });
-          }
+          // Set device info from user agent, IP will be determined from messages
+          setDeviceInfo({ ip: 'Determining...', userAgent: navigator.userAgent });
+          
         } catch (error) {
           console.error("Failed to fetch initial data:", error);
           toast({ title: "Error", description: "An error occurred while fetching data.", variant: "destructive" });
@@ -84,8 +82,11 @@ export default function DashboardPage() {
             }
             return [...prev, eventData.message];
           });
+          
+          const currentUserIp = messages.find(m => m.userId === user.username)?.deviceInfo?.ip;
+
           // Mark as seen if not from self
-          if (deviceInfo && eventData.message.deviceInfo?.ip !== deviceInfo.ip) {
+          if (currentUserIp && eventData.message.deviceInfo?.ip !== currentUserIp) {
             fetch(`/api/messages/${eventData.message.id}/seen`, { method: 'POST' });
           }
         } else if (eventData.action === 'seen') {
@@ -101,7 +102,20 @@ export default function DashboardPage() {
         eventSource.close();
       };
     }
-  }, [user, toast, deviceInfo, updateMessageSeen]);
+  }, [user, toast, updateMessageSeen, messages]);
+
+  // Update device info with the latest IP from the user's own messages
+  useEffect(() => {
+    if (user) {
+      const ownMessages = messages.filter(m => m.userId === user.username);
+      if (ownMessages.length > 0) {
+        const latestIp = ownMessages[ownMessages.length - 1].deviceInfo?.ip;
+        if (latestIp && deviceInfo?.ip !== latestIp) {
+          setDeviceInfo(prev => prev ? { ...prev, ip: latestIp } : { ip: latestIp, userAgent: navigator.userAgent });
+        }
+      }
+    }
+  }, [messages, user, deviceInfo]);
 
   return (
     <div className="flex h-[calc(100vh-3.5rem)] flex-col bg-muted/20 dark:bg-card">
