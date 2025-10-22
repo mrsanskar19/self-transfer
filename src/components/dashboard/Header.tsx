@@ -8,7 +8,7 @@ import { LogOut, Settings, Monitor } from "lucide-react";
 import SettingsPage from "./Settings";
 
 interface HeaderProps {
-    user: User;
+    user: User | null;
     onLogout: () => void;
     deviceInfo: DeviceInfo | null;
     messages: Message[];
@@ -20,7 +20,7 @@ export default function Header({ user, onLogout, deviceInfo, messages }: HeaderP
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-xl font-bold">Ephemeral Vault</h1>
-          <p className="text-sm text-muted-foreground">Welcome, {user.username}</p>
+          {user && <p className="text-sm text-muted-foreground">Welcome, {user.username}</p>}
         </div>
         <div className="flex items-center gap-2">
            <Sheet>
