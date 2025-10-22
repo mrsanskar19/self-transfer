@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Loader2, UploadCloud, File as FileIcon, Download, Trash2, AlertCircle, Copy } from "lucide-react";
+import { Loader2, UploadCloud, File as FileIcon, Download, Trash2, AlertCircle, Copy, MessageSquareText, Shield } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -18,10 +18,11 @@ interface UserFile {
   url: string;
   shareableUrl: string;
   uploadedAt: string;
+  deviceInfo: string;
 }
 
 export default function DashboardPage() {
-  const { user, loading, logout } = useAuth();
+  const { user, loading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -105,6 +106,7 @@ export default function DashboardPage() {
       url: objectUrl,
       shareableUrl: shareableUrl,
       uploadedAt: new Date().toISOString(),
+      deviceInfo: navigator.userAgent,
     };
 
     localStorage.setItem("ephemeral-file", JSON.stringify(newFileData));
@@ -156,6 +158,13 @@ export default function DashboardPage() {
     });
   };
 
+  const handleShareViaText = () => {
+    if (!userFile) return;
+    const message = `Here is the file you requested: ${userFile.shareableUrl}`;
+    const smsLink = `sms:?&body=${encodeURIComponent(message)}`;
+    window.location.href = smsLink;
+  };
+
   if (loading || !user) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -202,9 +211,9 @@ export default function DashboardPage() {
               <span>Loading file info...</span>
             </div>
           ) : userFile ? (
-            <div className="space-y-4">
-              <div className="flex items-center p-4 border rounded-md bg-background/50">
-                <FileIcon className="h-8 w-8 mr-4 text-primary" />
+            <div className="space-y-6">
+              <div className="flex items-start gap-4 p-4 border rounded-md bg-background/50">
+                <FileIcon className="h-8 w-8 text-primary flex-shrink-0 mt-1" />
                 <div className="flex-grow min-w-0">
                   <p className="font-medium truncate" title={userFile.name}>{userFile.name}</p>
                   <div className="text-sm text-muted-foreground">
@@ -213,15 +222,31 @@ export default function DashboardPage() {
                 </div>
               </div>
               
-              <div className="space-y-2">
-                 <Label htmlFor="share-link">Shareable Link</Label>
-                 <div className="flex gap-2">
-                    <Input id="share-link" type="text" readOnly value={userFile.shareableUrl} className="bg-muted"/>
-                    <Button variant="outline" size="icon" onClick={handleCopyToClipboard}>
-                      <Copy className="h-4 w-4" />
-                      <span className="sr-only">Copy link</span>
-                    </Button>
-                 </div>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                    <Label htmlFor="share-link">Shareable Link</Label>
+                    <div className="flex gap-2">
+                      <Input id="share-link" type="text" readOnly value={userFile.shareableUrl} className="bg-muted"/>
+                      <Button variant="outline" size="icon" onClick={handleCopyToClipboard} title="Copy Link">
+                        <Copy className="h-4 w-4" />
+                        <span className="sr-only">Copy link</span>
+                      </Button>
+                      <Button variant="outline" size="icon" onClick={handleShareViaText} title="Share via Text">
+                        <MessageSquareText className="h-4 w-4" />
+                        <span className="sr-only">Share via Text</span>
+                      </Button>
+                    </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Security Details</Label>
+                  <div className="flex items-center gap-2 p-3 border rounded-md bg-muted text-sm">
+                     <Shield className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                     <p className="truncate text-muted-foreground" title={userFile.deviceInfo}>
+                      Uploaded from: {userFile.deviceInfo}
+                     </p>
+                  </div>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
