@@ -1,7 +1,9 @@
+
 "use client";
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -232,6 +234,17 @@ export default function DashboardPage() {
   const getInitials = (name: string) => name?.[0]?.toUpperCase() ?? 'U';
 
   const renderMessageContent = (msg: Message) => {
+    if (msg.type === 'file' && msg.url?.startsWith('data:image')) {
+      return (
+        <Image 
+            src={msg.url}
+            alt={msg.name || 'Uploaded image'}
+            width={250}
+            height={250}
+            className="rounded-lg object-cover"
+        />
+      );
+    }
     if (msg.type === 'file') {
       return (
         <div className="flex items-center gap-3">
@@ -395,3 +408,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
