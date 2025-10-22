@@ -207,9 +207,9 @@ export default function DashboardPage() {
                 <FileIcon className="h-8 w-8 mr-4 text-primary" />
                 <div className="flex-grow min-w-0">
                   <p className="font-medium truncate" title={userFile.name}>{userFile.name}</p>
-                  <p className="text-sm text-muted-foreground">
+                  <div className="text-sm text-muted-foreground">
                     <Badge variant="outline">Expires at: {new Date(new Date(userFile.uploadedAt).getTime() + 60 * 60 * 1000).toLocaleTimeString()}</Badge>
-                  </p>
+                  </div>
                 </div>
               </div>
               
