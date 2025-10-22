@@ -1,38 +1,62 @@
 
 import { SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
-import { Label } from "@/components/ui/label";
-import { Switch } from "../ui/switch";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Message, DeviceInfo } from "@/lib/types";
+import { Monitor, User } from "lucide-react";
 
-export default function SettingsPage() {
+interface SettingsPageProps {
+    messages: Message[];
+}
+
+export default function SettingsPage({ messages }: SettingsPageProps) {
+
+    // Get unique devices from messages
+    const getActiveDevices = (): DeviceInfo[] => {
+        const devices = new Map<string, DeviceInfo>();
+        messages.forEach(msg => {
+            if (msg.deviceInfo && !devices.has(msg.deviceInfo.ip)) {
+                devices.set(msg.deviceInfo.ip, msg.deviceInfo);
+            }
+        });
+        return Array.from(devices.values());
+    }
+
+    const activeDevices = getActiveDevices();
+
     return (
         <>
             <SheetHeader>
                 <SheetTitle>Settings</SheetTitle>
                 <SheetDescription>
-                    Manage your Ephemeral Vault preferences.
+                    Manage your Ephemeral Vault preferences and view active devices.
                 </SheetDescription>
             </SheetHeader>
             <Separator className="my-4" />
-            <div className="space-y-6 p-4">
-                <div className="flex items-center justify-between">
-                    <Label htmlFor="dark-mode" className="flex flex-col space-y-1">
-                        <span>Dark Mode</span>
-                        <span className="font-normal leading-snug text-muted-foreground">
-                            Toggle the theme of the application.
-                        </span>
-                    </Label>
-                    <Switch id="dark-mode" defaultChecked={true} disabled />
-                </div>
-                 <div className="flex items-center justify-between">
-                    <Label htmlFor="notifications" className="flex flex-col space-y-1">
-                        <span>Push Notifications</span>
-                        <span className="font-normal leading-snug text-muted-foreground">
-                            Enable to receive push notifications (feature coming soon).
-                        </span>
-                    </Label>
-                    <Switch id="notifications" disabled />
-                </div>
+            <div className="p-4 space-y-4">
+                <h3 className="text-lg font-semibold">Active Devices</h3>
+                <p className="text-sm text-muted-foreground">
+                    List of unique devices that have sent messages in this session.
+                </p>
+                <ScrollArea className="h-64 border rounded-md">
+                    <div className="p-4 space-y-4">
+                        {activeDevices.length > 0 ? (
+                            activeDevices.map((device, index) => (
+                                <div key={index} className="p-3 bg-muted/50 rounded-lg">
+                                    <div className="flex items-start gap-3">
+                                        <Monitor className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                                        <div className="min-w-0">
+                                            <p className="font-semibold truncate text-sm">IP: {device.ip.replace('::ffff:', '')}</p>
+                                            <p className="text-xs text-muted-foreground truncate">{device.userAgent}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <p className="text-sm text-muted-foreground text-center">No active devices detected yet.</p>
+                        )}
+                    </div>
+                </ScrollArea>
             </div>
         </>
     )

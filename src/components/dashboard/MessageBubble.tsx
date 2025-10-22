@@ -129,6 +129,8 @@ export function MessageBubble({ message, isOwnMessage }: MessageBubbleProps) {
         </div>
     );
 
+    const hasBeenSeen = message.seenBy && message.seenBy.length > 0 && message.seenBy.some(ip => ip !== message.deviceInfo?.ip);
+
     if (isOwnMessage) {
         return (
             <>
@@ -138,15 +140,13 @@ export function MessageBubble({ message, isOwnMessage }: MessageBubbleProps) {
                             {renderMessageContent()}
                         </div>
                         <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                             {message.seen ? <CheckCheck size={14} className="text-blue-500" /> : <Check size={14} />}
-                             <span className="truncate" title={message.deviceInfo?.userAgent}>
-                                {message.userId} (You)
-                             </span>
-                            {(message.type === 'text' || message.shareableUrl) && (
-                                <Button onClick={() => handleDelete(message.id)} variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive hover:bg-destructive/10" disabled={deletingId === message.id}>
-                                    {deletingId === message.id ? <Loader2 className="animate-spin" size={12} /> : <Trash2 size={12} />}
-                                </Button>
-                            )}
+                            {hasBeenSeen ? <CheckCheck size={14} className="text-blue-500" /> : <Check size={14} />}
+                            <span className="truncate" title={message.deviceInfo?.ip}>
+                                You ({message.deviceInfo?.ip.replace('::ffff:', '')})
+                            </span>
+                            <Button onClick={() => handleDelete(message.id)} variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive hover:bg-destructive/10" disabled={deletingId === message.id}>
+                                {deletingId === message.id ? <Loader2 className="animate-spin" size={12} /> : <Trash2 size={12} />}
+                            </Button>
                         </div>
                     </div>
                     <Avatar className="h-8 w-8">
@@ -162,9 +162,9 @@ export function MessageBubble({ message, isOwnMessage }: MessageBubbleProps) {
                             <Card className="bg-background dark:bg-muted">
                                 <CardContent className="p-3 space-y-3">
                                     <div>
-                                        <p className="font-semibold text-sm mb-1">File Secured!</p>
+                                        <p className="font-semibold text-sm mb-1">Shareable Link</p>
                                         <p className="text-xs text-muted-foreground">
-                                            Link expires at: {new Date(new Date(message.uploadedAt).getTime() + 60 * 60 * 1000).toLocaleTimeString()}
+                                            Expires: {new Date(new Date(message.uploadedAt).getTime() + 60 * 60 * 1000).toLocaleTimeString()}
                                         </p>
                                     </div>
                                     <div className="flex gap-2">
@@ -196,7 +196,7 @@ export function MessageBubble({ message, isOwnMessage }: MessageBubbleProps) {
                 </div>
                 {message.deviceInfo && (
                      <div className="text-xs text-muted-foreground flex items-center gap-1.5" title={message.deviceInfo.userAgent}>
-                        <span>{message.userId}</span>
+                        <span>{message.userId} ({message.deviceInfo.ip.replace('::ffff:', '')})</span>
                     </div>
                 )}
             </div>

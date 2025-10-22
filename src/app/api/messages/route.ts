@@ -52,15 +52,17 @@ export async function POST(request: Request) {
     
     const id = Date.now().toString();
     const shareableUrl = body.type === 'file' ? `${new URL(request.url).origin}/shared/${id}` : undefined;
+    const ip = headerList.get('x-forwarded-for') || request.headers.get('host')?.split(':')[0] || 'Unknown';
+
 
     const newMessage: Message = {
       id,
       uploadedAt: new Date().toISOString(),
       shareableUrl,
-      seen: false,
+      seenBy: [],
       deviceInfo: {
         userAgent: headerList.get('user-agent') || 'Unknown',
-        ip: headerList.get('x-forwarded-for') || request.headers.get('host')?.split(':')[0] || 'Unknown',
+        ip: ip.startsWith('::ffff:') ? ip.substring(7) : ip,
       },
       ...body
     };
@@ -70,7 +72,7 @@ export async function POST(request: Request) {
 
     // Don't broadcast the full file content (url)
     const { url, ...messageToBroadcast } = newMessage;
-    broadcastMessage(messageToBroadcast);
+    broadcastMessage({ action: 'add', message: messageToBroadcast });
 
     return NextResponse.json(messageToBroadcast, { status: 201 });
   } catch (error) {

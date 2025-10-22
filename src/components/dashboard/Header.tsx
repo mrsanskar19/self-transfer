@@ -3,17 +3,18 @@
 
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { User } from "@/lib/types";
+import { User, DeviceInfo, Message } from "@/lib/types";
 import { LogOut, Settings, Monitor } from "lucide-react";
 import SettingsPage from "./Settings";
 
 interface HeaderProps {
     user: User;
     onLogout: () => void;
-    deviceInfo: { ip: string; userAgent: string } | null;
+    deviceInfo: DeviceInfo | null;
+    messages: Message[];
 }
 
-export default function Header({ user, onLogout, deviceInfo }: HeaderProps) {
+export default function Header({ user, onLogout, deviceInfo, messages }: HeaderProps) {
   return (
     <header className="p-4 border-b bg-background">
       <div className="flex justify-between items-center">
@@ -29,7 +30,7 @@ export default function Header({ user, onLogout, deviceInfo }: HeaderProps) {
               </Button>
             </SheetTrigger>
             <SheetContent>
-              <SettingsPage />
+              <SettingsPage messages={messages} />
             </SheetContent>
           </Sheet>
           <Button variant="outline" size="icon" onClick={onLogout}>
@@ -40,7 +41,7 @@ export default function Header({ user, onLogout, deviceInfo }: HeaderProps) {
       {deviceInfo && (
         <div className="mt-2 text-xs text-muted-foreground flex items-center gap-2 border-t pt-2">
             <Monitor size={14} />
-            <p className="truncate"><strong>Your IP:</strong> {deviceInfo.ip} | <strong>Device:</strong> {deviceInfo.userAgent}</p>
+            <p className="truncate"><strong>Your IP:</strong> {deviceInfo.ip.replace('::ffff:', '')}</p>
         </div>
       )}
     </header>

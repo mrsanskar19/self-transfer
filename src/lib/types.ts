@@ -16,7 +16,7 @@ export interface Message {
   shareableUrl?: string;
   uploadedAt: string;
   deviceInfo?: DeviceInfo;
-  seen?: boolean;
+  seenBy: string[]; // Array of IP addresses that have seen the message
 }
 
 export interface User {
