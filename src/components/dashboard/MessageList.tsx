@@ -32,7 +32,7 @@ export function MessageList({ messages, currentUser, currentDeviceIp }: MessageL
                 <MessageBubble 
                     key={msg.id} 
                     message={msg} 
-                    isOwnMessage={msg.deviceInfo?.ip === currentDeviceIp && msg.userId === currentUser.username} 
+                    isOwnMessage={msg.deviceInfo?.ip === currentDeviceIp} 
                 />
             ))}
             <div ref={messagesEndRef} />
