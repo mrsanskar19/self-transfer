@@ -1,0 +1,145 @@
+
+"use client";
+
+import { useState, useEffect } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Loader2, FileIcon, Download, AlertCircle, ShieldX } from 'lucide-react';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { useToast } from '@/hooks/use-toast';
+
+interface Message {
+  id: string;
+  type: 'file';
+  content: string;
+  name?: string;
+  url?: string;
+  shareableUrl?: string;
+  uploadedAt: string;
+  deviceInfo?: string;
+}
+
+export default function SharedFilePage() {
+  const { id: encodedId } = useParams();
+  const router = useRouter();
+  const { toast } = useToast();
+  
+  const [fileData, setFileData] = useState<Message | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!encodedId) {
+      setError("No file ID provided.");
+      setIsLoading(false);
+      return;
+    }
+    
+    try {
+      const fileId = atob(encodedId as string);
+      const storedMessages = localStorage.getItem("ephemeral-messages");
+      
+      if (!storedMessages) {
+        setError("No files found. This link may have expired or is invalid.");
+        setIsLoading(false);
+        return;
+      }
+      
+      const messages: Message[] = JSON.parse(storedMessages);
+      const foundFile = messages.find(msg => msg.type === 'file' && msg.id === fileId);
+
+      if (foundFile) {
+        const oneHour = 60 * 60 * 1000;
+        if (Date.now() - new Date(foundFile.uploadedAt).getTime() > oneHour) {
+          setError("This file has expired and is no longer available.");
+          // Optionally, clean up the expired file from local storage
+          const updatedMessages = messages.filter(msg => msg.id !== fileId);
+          localStorage.setItem("ephemeral-messages", JSON.stringify(updatedMessages));
+        } else {
+          setFileData(foundFile);
+        }
+      } else {
+        setError("File not found. It may have been deleted or the link is incorrect.");
+      }
+    } catch (e) {
+      setError("Invalid share link.");
+      console.error("Error decoding or finding file:", e);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [encodedId]);
+
+  const handleDownload = () => {
+    if (!fileData || !fileData.url || !fileData.name) return;
+
+    const link = document.createElement('a');
+    link.href = fileData.url;
+    link.setAttribute('download', fileData.name);
+    document.body.appendChild(link);
+    link.click();
+    link.parentNode?.removeChild(link);
+    
+    toast({ title: "Downloaded", description: "File downloaded. It has now been deleted from the vault." });
+
+    // Delete the file from local storage
+    const storedMessages = localStorage.getItem("ephemeral-messages");
+    if (storedMessages) {
+      const messages = JSON.parse(storedMessages);
+      const updatedMessages = messages.filter((msg: Message) => msg.id !== fileData.id);
+      localStorage.setItem("ephemeral-messages", JSON.stringify(updatedMessages));
+    }
+    
+    // Redirect to home page after download and deletion
+    router.push('/');
+  };
+
+  return (
+    <div className="flex items-center justify-center min-h-[calc(100vh-3.5rem)] py-12 px-4 sm:px-6 lg:px-8 bg-background">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle className="text-center text-2xl font-bold">Ephemeral Vault</CardTitle>
+          <CardDescription className="text-center">You have received a temporary file.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="flex justify-center items-center p-8">
+              <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            </div>
+          ) : error ? (
+            <Alert variant="destructive">
+              <ShieldX className="h-4 w-4" />
+              <AlertTitle>Access Denied</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          ) : fileData ? (
+            <div className="space-y-4">
+              <div className="p-4 border rounded-lg flex items-center gap-4">
+                <FileIcon className="h-8 w-8 text-primary flex-shrink-0" />
+                <div className="min-w-0">
+                  <p className="font-semibold truncate">{fileData.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                     Expires: {new Date(new Date(fileData.uploadedAt).getTime() + 60 * 60 * 1000).toLocaleTimeString()}
+                  </p>
+                </div>
+              </div>
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Heads up!</AlertTitle>
+                <AlertDescription>
+                  This file will be permanently deleted from the vault after you download it.
+                </AlertDescription>
+              </Alert>
+              <Button className="w-full" onClick={handleDownload}>
+                <Download className="mr-2" />
+                Download and Delete File
+              </Button>
+            </div>
+          ) : null}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+    
