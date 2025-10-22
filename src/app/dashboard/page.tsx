@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent } from "@/components/ui/card";
@@ -48,43 +48,45 @@ export default function DashboardPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const fetchMessages = useCallback(async () => {
-    setIsLoadingMessages(true);
-    try {
-      // Fetch all messages to display a full chat history
-      const response = await fetch(`/api/messages`);
-      if (response.ok) {
-        let data: Message[] = await response.json();
-        const oneHour = 60 * 60 * 1000;
-        const now = Date.now();
-        
-        const validMessages = data.filter(msg => {
-          if (now - new Date(msg.uploadedAt).getTime() > oneHour) {
-            // Silently delete expired messages on the backend
-            fetch(`/api/messages/${msg.id}`, { method: 'DELETE' });
-            return false;
-          }
-          return true;
-        });
-
-        setMessages(validMessages);
-      } else {
-        toast({ title: "Error", description: "Failed to load messages.", variant: "destructive" });
-      }
-    } catch (error) {
-      console.error("Failed to fetch messages:", error);
-      toast({ title: "Error", description: "An error occurred while fetching messages.", variant: "destructive" });
-    } finally {
-      setIsLoadingMessages(false);
-    }
-  }, [toast]);
-
-
   useEffect(() => {
     if (!loading && !user) {
       router.push("/login");
     }
+  }, [user, loading, router]);
+
+
+  useEffect(() => {
     if (user) {
+      const fetchMessages = async () => {
+        setIsLoadingMessages(true);
+        try {
+          const response = await fetch(`/api/messages`);
+          if (response.ok) {
+            let data: Message[] = await response.json();
+            const oneHour = 60 * 60 * 1000;
+            const now = Date.now();
+            
+            const validMessages = data.filter(msg => {
+              if (now - new Date(msg.uploadedAt).getTime() > oneHour) {
+                // Silently delete expired messages on the backend
+                fetch(`/api/messages/${msg.id}`, { method: 'DELETE' });
+                return false;
+              }
+              return true;
+            });
+    
+            setMessages(validMessages);
+          } else {
+            toast({ title: "Error", description: "Failed to load messages.", variant: "destructive" });
+          }
+        } catch (error) {
+          console.error("Failed to fetch messages:", error);
+          toast({ title: "Error", description: "An error occurred while fetching messages.", variant: "destructive" });
+        } finally {
+          setIsLoadingMessages(false);
+        }
+      };
+
       fetchMessages();
 
       const eventSource = new EventSource('/api/messages/events');
@@ -110,7 +112,7 @@ export default function DashboardPage() {
         eventSource.close();
       };
     }
-  }, [user, loading, router, fetchMessages]);
+  }, [user, toast]);
 
   useEffect(() => {
     scrollToBottom();
@@ -198,6 +200,9 @@ export default function DashboardPage() {
         setIsUploading(false);
         setFile(null);
         setMessage("");
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
     }
   };
 
