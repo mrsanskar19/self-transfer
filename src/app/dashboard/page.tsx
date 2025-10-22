@@ -31,7 +31,7 @@ export default function DashboardPage() {
     }
   }, [user, loading, router]);
 
-  // Effect for fetching initial data
+  // Effect for fetching initial data - runs only once when the user is available
   useEffect(() => {
     if (user) {
       const fetchInitialData = async () => {
@@ -56,7 +56,7 @@ export default function DashboardPage() {
     }
   }, [user, toast]);
 
-  // Effect for handling SSE
+  // Effect for handling SSE - runs only once when the user is available
   useEffect(() => {
     if (!user) return;
     
@@ -66,31 +66,32 @@ export default function DashboardPage() {
       try {
         const eventData: SseEventData = JSON.parse(event.data);
 
-        if (eventData.action === 'delete') {
-          setMessages(prev => prev.filter(m => m.id !== eventData.id));
-        } else if (eventData.action === 'add') {
-          const newMessage = eventData.message;
-          setMessages(prev => {
-            if (prev.find(m => m.id === newMessage.id)) {
+        setMessages(prev => {
+          if (eventData.action === 'delete') {
+            return prev.filter(m => m.id !== eventData.id);
+          }
+          if (eventData.action === 'add') {
+            const newMessage = eventData.message;
+            // Avoid adding duplicates
+            if (prev.some(m => m.id === newMessage.id)) {
               return prev;
             }
+            // Mark as seen if not from self
+            if (deviceInfo?.ip && newMessage.deviceInfo?.ip !== deviceInfo.ip) {
+              fetch(`/api/messages/${newMessage.id}/seen`, { method: 'POST' });
+            }
             return [...prev, newMessage].sort((a, b) => new Date(a.uploadedAt).getTime() - new Date(b.uploadedAt).getTime());
-          });
-
-          // Mark as seen if not from self
-          const currentUserIp = deviceInfo?.ip;
-          if (currentUserIp && newMessage.deviceInfo?.ip !== currentUserIp) {
-            fetch(`/api/messages/${newMessage.id}/seen`, { method: 'POST' });
           }
-        } else if (eventData.action === 'seen') {
-            setMessages(prev =>
-              prev.map(m =>
-                m.id === eventData.id && m.seenBy && !m.seenBy.includes(eventData.ip)
-                  ? { ...m, seenBy: [...m.seenBy, eventData.ip] }
-                  : m
-              )
+          if (eventData.action === 'seen') {
+            return prev.map(m =>
+              m.id === eventData.id && m.seenBy && !m.seenBy.includes(eventData.ip)
+                ? { ...m, seenBy: [...m.seenBy, eventData.ip] }
+                : m
             );
-        }
+          }
+          return prev;
+        });
+
       } catch (error) {
           // This can happen if the event data is not valid JSON, we'll just ignore it.
       }
@@ -105,7 +106,7 @@ export default function DashboardPage() {
     return () => {
       eventSource.close();
     };
-  }, [user, deviceInfo]);
+  }, [user, deviceInfo?.ip]); // Depend only on user and the IP string
 
 
   if (loading || !deviceInfo) {
