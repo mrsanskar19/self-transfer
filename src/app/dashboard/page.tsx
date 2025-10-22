@@ -63,19 +63,7 @@ export default function DashboardPage() {
           const response = await fetch(`/api/messages`);
           if (response.ok) {
             let data: Message[] = await response.json();
-            const oneHour = 60 * 60 * 1000;
-            const now = Date.now();
-            
-            const validMessages = data.filter(msg => {
-              if (now - new Date(msg.uploadedAt).getTime() > oneHour) {
-                // Silently delete expired messages on the backend
-                fetch(`/api/messages/${msg.id}`, { method: 'DELETE' });
-                return false;
-              }
-              return true;
-            });
-    
-            setMessages(validMessages);
+            setMessages(data);
           } else {
             toast({ title: "Error", description: "Failed to load messages.", variant: "destructive" });
           }
@@ -98,14 +86,19 @@ export default function DashboardPage() {
           setMessages(prev => prev.filter(m => m.id !== eventData.id));
         } else if('id' in eventData) {
           const newMessage = eventData as Message;
-          // Add new message if it doesn't already exist
-          setMessages(prev => prev.find(m => m.id === newMessage.id) ? prev : [...prev, newMessage]);
+          setMessages(prev => {
+            // Add new message if it doesn't already exist
+            if (prev.find(m => m.id === newMessage.id)) {
+              return prev;
+            }
+            return [...prev, newMessage];
+          });
         }
       };
 
       eventSource.onerror = (err) => {
-        console.error("EventSource failed:", err);
-        eventSource.close();
+        // The browser will automatically try to reconnect, so we don't need to
+        // close the connection or log every error. We can just let it be.
       };
       
       return () => {
@@ -402,5 +395,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    

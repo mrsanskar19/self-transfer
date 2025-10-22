@@ -17,38 +17,20 @@
       "deviceInfo": "Mozilla/5.0 (X11; CrOS x86_64 14541.0.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
     },
     {
-      "id": "1761131817416",
-      "uploadedAt": "2025-10-22T11:16:57.416Z",
-      "shareableUrl": "http://0.0.0.0:9002/shared/1761131817416",
-      "type": "text",
-      "content": "hi",
-      "userId": "test",
-      "deviceInfo": "Mozilla/5.0 (X11; CrOS x86_64 14541.0.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
-    },
-    {
-      "id": "1761131993428",
-      "uploadedAt": "2025-10-22T11:19:53.428Z",
-      "shareableUrl": "http://0.0.0.0:9002/shared/1761131993428",
-      "type": "text",
-      "content": "hi",
-      "userId": "test",
-      "deviceInfo": "Mozilla/5.0 (X11; CrOS x86_64 14541.0.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
-    },
-    {
-      "id": "1761132002352",
-      "uploadedAt": "2025-10-22T11:20:02.353Z",
-      "shareableUrl": "http://0.0.0.0:9002/shared/1761132002352",
-      "type": "text",
-      "content": "hijlkgdf",
-      "userId": "test",
-      "deviceInfo": "Mozilla/5.0 (X11; CrOS x86_64 14541.0.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
-    },
-    {
       "id": "1761132007022",
       "uploadedAt": "2025-10-22T11:20:07.022Z",
       "shareableUrl": "http://0.0.0.0:9002/shared/1761132007022",
       "type": "text",
       "content": "dfgbd",
+      "userId": "test",
+      "deviceInfo": "Mozilla/5.0 (X11; CrOS x86_64 14541.0.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+    },
+    {
+      "id": "1761132131770",
+      "uploadedAt": "2025-10-22T11:22:11.770Z",
+      "shareableUrl": "http://0.0.0.0:9002/shared/1761132131770",
+      "type": "text",
+      "content": "hfjk",
       "userId": "test",
       "deviceInfo": "Mozilla/5.0 (X11; CrOS x86_64 14541.0.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
     }
