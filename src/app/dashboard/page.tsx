@@ -26,22 +26,13 @@ export default function DashboardPage() {
   const [isLoadingMessages, setIsLoadingMessages] = useState(true);
   const [deviceInfo, setDeviceInfo] = useState<DeviceInfo | null>(null);
 
-  const updateMessageSeen = useCallback(async (msgId: string, seenIp: string) => {
-    setMessages(prev =>
-      prev.map(m =>
-        m.id === msgId && !m.seenBy.includes(seenIp)
-          ? { ...m, seenBy: [...m.seenBy, seenIp] }
-          : m
-      )
-    );
-  }, []);
-
   useEffect(() => {
     if (!loading && !user) {
       router.push("/login");
     }
   }, [user, loading, router]);
 
+  // Effect for fetching initial data
   useEffect(() => {
     if (user) {
       const fetchInitialData = async () => {
@@ -54,10 +45,6 @@ export default function DashboardPage() {
           } else {
             toast({ title: "Error", description: "Failed to load messages.", variant: "destructive" });
           }
-
-          // Set device info from user agent, IP will be determined from messages
-          setDeviceInfo({ ip: 'Determining...', userAgent: navigator.userAgent });
-          
         } catch (error) {
           console.error("Failed to fetch initial data:", error);
           toast({ title: "Error", description: "An error occurred while fetching data.", variant: "destructive" });
@@ -67,42 +54,55 @@ export default function DashboardPage() {
       };
 
       fetchInitialData();
-
-      const eventSource = new EventSource('/api/messages/events');
-      
-      eventSource.onmessage = (event) => {
-        const eventData: SseEventData = JSON.parse(event.data);
-
-        if (eventData.action === 'delete') {
-          setMessages(prev => prev.filter(m => m.id !== eventData.id));
-        } else if (eventData.action === 'add') {
-          setMessages(prev => {
-            if (prev.find(m => m.id === eventData.message.id)) {
-              return prev;
-            }
-            return [...prev, eventData.message];
-          });
-          
-          const currentUserIp = messages.find(m => m.userId === user.username)?.deviceInfo?.ip;
-
-          // Mark as seen if not from self
-          if (currentUserIp && eventData.message.deviceInfo?.ip !== currentUserIp) {
-            fetch(`/api/messages/${eventData.message.id}/seen`, { method: 'POST' });
-          }
-        } else if (eventData.action === 'seen') {
-            updateMessageSeen(eventData.id, eventData.ip);
-        }
-      };
-
-      eventSource.onerror = (err) => {
-        // Browser will auto-reconnect
-      };
-      
-      return () => {
-        eventSource.close();
-      };
     }
-  }, [user, toast, updateMessageSeen, messages]);
+  }, [user, toast]);
+
+  // Effect for handling SSE
+  useEffect(() => {
+    if (!user) return;
+    
+    const eventSource = new EventSource('/api/messages/events');
+    
+    const handleSseMessage = (event: MessageEvent) => {
+      const eventData: SseEventData = JSON.parse(event.data);
+
+      if (eventData.action === 'delete') {
+        setMessages(prev => prev.filter(m => m.id !== eventData.id));
+      } else if (eventData.action === 'add') {
+        const newMessage = eventData.message;
+        setMessages(prev => {
+          if (prev.find(m => m.id === newMessage.id)) {
+            return prev;
+          }
+          return [...prev, newMessage];
+        });
+
+        // Mark as seen if not from self
+        const currentUserIp = deviceInfo?.ip;
+        if (currentUserIp && newMessage.deviceInfo?.ip !== currentUserIp) {
+          fetch(`/api/messages/${newMessage.id}/seen`, { method: 'POST' });
+        }
+      } else if (eventData.action === 'seen') {
+          setMessages(prev =>
+            prev.map(m =>
+              m.id === eventData.id && !m.seenBy.includes(eventData.ip)
+                ? { ...m, seenBy: [...m.seenBy, eventData.ip] }
+                : m
+            )
+          );
+      }
+    };
+    
+    eventSource.onmessage = handleSseMessage;
+
+    eventSource.onerror = (err) => {
+      // Browser will auto-reconnect
+    };
+    
+    return () => {
+      eventSource.close();
+    };
+  }, [user, deviceInfo]);
 
   // Update device info with the latest IP from the user's own messages
   useEffect(() => {
@@ -110,12 +110,22 @@ export default function DashboardPage() {
       const ownMessages = messages.filter(m => m.userId === user.username);
       if (ownMessages.length > 0) {
         const latestIp = ownMessages[ownMessages.length - 1].deviceInfo?.ip;
-        if (latestIp && deviceInfo?.ip !== latestIp) {
-          setDeviceInfo(prev => prev ? { ...prev, ip: latestIp } : { ip: latestIp, userAgent: navigator.userAgent });
+        if (latestIp && (!deviceInfo || deviceInfo.ip !== latestIp)) {
+          setDeviceInfo({ ip: latestIp, userAgent: navigator.userAgent });
         }
+      } else if (!deviceInfo) {
+         setDeviceInfo({ ip: 'Unknown', userAgent: navigator.userAgent });
       }
     }
   }, [messages, user, deviceInfo]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    )
+  }
 
   return (
     <div className="flex h-[calc(100vh-3.5rem)] flex-col bg-muted/20 dark:bg-card">
