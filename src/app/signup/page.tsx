@@ -51,6 +51,8 @@ export default function SignupPage() {
     setIsLoading(true);
     // In our mock app, signup just logs you in.
     try {
+      // We'll use the same login logic for simplicity.
+      // In a real app, you would have a separate signup function.
       await login(values.email, values.password);
       toast({
         title: "Account Created",
@@ -60,7 +62,7 @@ export default function SignupPage() {
     } catch (error: any) {
       toast({
         title: "Signup Failed",
-        description: error.message,
+        description: "This is a demo. Please use email 'test' and password 'test123' to sign up.",
         variant: "destructive",
       });
     } finally {

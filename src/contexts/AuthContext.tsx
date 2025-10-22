@@ -39,7 +39,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const login = useCallback(async (email: string, pass: string) => {
-    // In a real app, never do this!
+    // In a real app, this would be a call to an authentication service.
+    // For this mock, we're just checking for a hardcoded user.
     if (email.toLowerCase() === 'test' && pass === 'test123') {
       const userData = { email };
       localStorage.setItem('ephemeral-user', JSON.stringify(userData));
