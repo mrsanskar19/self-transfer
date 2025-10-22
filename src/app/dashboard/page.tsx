@@ -121,21 +121,18 @@ export default function DashboardPage() {
       const oneHour = 60 * 60 * 1000;
       const now = Date.now();
       
-      setMessages(prevMessages => 
-        prevMessages.filter(msg => {
-          const isExpired = now - new Date(msg.uploadedAt).getTime() > oneHour;
-          if (isExpired) {
-            // Trigger deletion on the backend which will notify via SSE
-            fetch(`/api/messages/${msg.id}`, { method: 'DELETE' });
-          }
-          return !isExpired;
-        })
-      );
+      messages.forEach(msg => {
+        const isExpired = now - new Date(msg.uploadedAt).getTime() > oneHour;
+        if (isExpired) {
+          // Trigger deletion on the backend which will notify via SSE
+          fetch(`/api/messages/${msg.id}`, { method: 'DELETE' });
+        }
+      });
     };
 
     const interval = setInterval(checkExpiredMessages, 60000);
     return () => clearInterval(interval);
-  }, []);
+  }, [messages]);
 
   const handleFileTrigger = () => {
     fileInputRef.current?.click();
@@ -166,35 +163,35 @@ export default function DashboardPage() {
     
     setIsUploading(true);
 
-    if (file) {
-      const dataUrl = await fileToBase64(file);
-      newMessagePayload = {
-        type: 'file',
-        content: file.name,
-        name: file.name,
-        url: dataUrl,
-        userId: user.username,
-        deviceInfo: navigator.userAgent,
-      };
-    } else {
-      newMessagePayload = {
-        type: 'text',
-        content: message,
-        userId: user.username,
-        deviceInfo: navigator.userAgent,
-      };
-    }
-    
     try {
-      const response = await fetch('/api/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newMessagePayload),
-      });
+        if (file) {
+          const dataUrl = await fileToBase64(file);
+          newMessagePayload = {
+            type: 'file',
+            content: file.name,
+            name: file.name,
+            url: dataUrl,
+            userId: user.username,
+            deviceInfo: navigator.userAgent,
+          };
+        } else {
+          newMessagePayload = {
+            type: 'text',
+            content: message,
+            userId: user.username,
+            deviceInfo: navigator.userAgent,
+          };
+        }
+        
+        const response = await fetch('/api/messages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newMessagePayload),
+        });
 
-      if (!response.ok) {
-        throw new Error('Failed to send message');
-      }
+        if (!response.ok) {
+          throw new Error('Failed to send message');
+        }
     } catch (error) {
        toast({ title: "Error", description: "Could not send message.", variant: "destructive" });
     } finally {
@@ -255,8 +252,8 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-3.5rem)] flex-col bg-card">
-      <header className="p-4 border-b">
+    <div className="flex h-[calc(100vh-3.5rem)] flex-col bg-muted/20 dark:bg-card">
+      <header className="p-4 border-b bg-background">
         <h1 className="text-xl font-bold">Ephemeral Vault</h1>
         <p className="text-sm text-muted-foreground">Your temporary file & text messenger</p>
       </header>
@@ -272,35 +269,42 @@ export default function DashboardPage() {
               {msg.userId === user.username ? (
                 // User's Message (Sent)
                 <div className="flex justify-end items-start gap-3 mb-4">
-                  <div className="flex flex-col items-end gap-2 max-w-xs lg:max-w-md">
-                     <div className="p-3 rounded-lg rounded-br-none bg-primary text-primary-foreground">
+                  <div className="flex flex-col items-end gap-1 max-w-xs lg:max-w-md">
+                     <div className="p-3 rounded-2xl rounded-br-lg bg-primary text-primary-foreground">
                         {renderMessageContent(msg)}
                      </div>
-                     {msg.deviceInfo && (
-                        <div className="text-xs text-muted-foreground flex items-center gap-1.5" title={msg.deviceInfo}>
-                            <Shield size={12} />
-                            <span>From your device</span>
-                        </div>
-                     )}
+                     <div className="flex items-center gap-3">
+                        {msg.deviceInfo && (
+                            <div className="text-xs text-muted-foreground flex items-center gap-1.5" title={msg.deviceInfo}>
+                                <Shield size={12} />
+                                <span>From your device</span>
+                            </div>
+                        )}
+                        {msg.type === 'text' && (
+                             <Button onClick={() => handleDelete(msg.id)} variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive hover:bg-destructive/10" disabled={deletingId === msg.id}>
+                                {deletingId === msg.id ? <Loader2 className="animate-spin" size={12}/> : <Trash2 size={12} />}
+                             </Button>
+                        )}
+                      </div>
                   </div>
-                  <Avatar>
+                  <Avatar className="h-8 w-8">
                     <AvatarFallback>{getInitials(user.username)}</AvatarFallback>
                   </Avatar>
                 </div>
               ) : (
                 // Other User's Message (Received)
                 <div className="flex justify-start items-start gap-3 mb-4">
-                  <Avatar>
+                  <Avatar className="h-8 w-8">
                     <AvatarFallback>{getInitials(msg.userId)}</AvatarFallback>
                   </Avatar>
-                   <div className="flex flex-col items-start gap-2 max-w-xs lg:max-w-md">
-                        <div className="p-3 rounded-lg rounded-bl-none bg-muted">
+                   <div className="flex flex-col items-start gap-1 max-w-xs lg:max-w-md">
+                        <div className="p-3 rounded-2xl rounded-bl-lg bg-background dark:bg-muted">
                             {renderMessageContent(msg)}
                         </div>
                          {msg.deviceInfo && (
                             <div className="text-xs text-muted-foreground flex items-center gap-1.5" title={msg.deviceInfo}>
                                 <Shield size={12} />
-                                <span>From {msg.userId}'s device</span>
+                                <span>From {msg.userId}</span>
                             </div>
                         )}
                    </div>
@@ -310,11 +314,11 @@ export default function DashboardPage() {
               {/* Vault's Reply to user's own file messages */}
               {msg.userId === user.username && msg.type === 'file' && msg.shareableUrl && (
                     <div className="flex justify-start items-end gap-3 mb-4">
-                      <Avatar>
-                          <AvatarFallback><Shield className="h-5 w-5"/></AvatarFallback>
+                      <Avatar className="h-8 w-8">
+                          <AvatarFallback><Shield className="h-4 w-4"/></AvatarFallback>
                       </Avatar>
                       <div className="max-w-xs lg:max-w-md space-y-2">
-                        <Card className="bg-muted">
+                        <Card className="bg-background dark:bg-muted">
                           <CardContent className="p-3 space-y-3">
                              <div>
                                 <p className="font-semibold text-sm mb-1">File Secured!</p>
@@ -340,20 +344,11 @@ export default function DashboardPage() {
                       </div>
                     </div>
               )}
-
-               {/* Delete option for text messages */}
-               {msg.userId === user.username && msg.type === 'text' && (
-                 <div className="flex justify-end items-center gap-3 mb-4 -mt-3 mr-12">
-                     <Button onClick={() => handleDelete(msg.id)} variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10" disabled={deletingId === msg.id}>
-                        {deletingId === msg.id ? <Loader2 className="animate-spin" size={14}/> : <Trash2 size={14} />}
-                     </Button>
-                 </div>
-                )}
             </div>
             ))
           ) : (
             <div className="flex justify-center items-center h-full">
-                <Alert className="max-w-md text-center">
+                <Alert className="max-w-md text-center bg-background">
                   <AlertCircle className="h-4 w-4 mx-auto mb-2" />
                   <AlertTitle>Vault is Empty</AlertTitle>
                   <AlertDescription>
@@ -366,9 +361,10 @@ export default function DashboardPage() {
       </main>
       
       <footer className="p-4 border-t bg-background">
-          {isUploading && (
+          {isUploading && file && (
              <div className="mb-2">
-                <Progress value={isUploading ? 50 : 0} className="w-full h-2" />
+                <Progress value={isUploading ? 50 : 0} className="w-full h-1" />
+                <p className="text-xs text-center text-muted-foreground mt-1">Uploading {file.name}...</p>
              </div>
            )}
           <div className="relative">
@@ -381,17 +377,19 @@ export default function DashboardPage() {
                   setMessage(e.target.value)
                 }
               }}
-              onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-              className="pr-20"
+              onKeyDown={(e) => e.key === 'Enter' && !isUploading && handleSend()}
+              className="pr-24 pl-10"
               disabled={isUploading}
             />
             <Input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden"/>
-            <div className="absolute top-1/2 right-2 -translate-y-1/2 flex items-center gap-1">
-              <Button variant="ghost" size="icon" onClick={handleFileTrigger} disabled={isUploading}>
-                <Paperclip className="h-5 w-5"/>
-              </Button>
-              <Button onClick={handleSend} disabled={(!file && !message.trim()) || isUploading} size="icon">
-                {isUploading ? <Loader2 className="animate-spin" /> : <Send className="h-5 w-5"/>}
+            <div className="absolute top-1/2 left-2 -translate-y-1/2">
+                <Button variant="ghost" size="icon" onClick={handleFileTrigger} disabled={isUploading} className="h-8 w-8">
+                  <Paperclip className="h-5 w-5 text-muted-foreground"/>
+                </Button>
+            </div>
+            <div className="absolute top-1/2 right-2 -translate-y-1/2 flex items-center">
+              <Button onClick={handleSend} disabled={(!file && !message.trim()) || isUploading} size="icon" className="h-8 w-8">
+                {isUploading && !file ? <Loader2 className="animate-spin" /> : <Send className="h-5 w-5"/>}
               </Button>
             </div>
           </div>
@@ -399,3 +397,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
