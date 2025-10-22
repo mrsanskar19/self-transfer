@@ -142,7 +142,7 @@ export function MessageBubble({ message, isOwnMessage }: MessageBubbleProps) {
                         <div className="flex items-center gap-3 text-xs text-muted-foreground">
                             {hasBeenSeen ? <CheckCheck size={14} className="text-blue-500" /> : <Check size={14} />}
                             <span className="truncate" title={message.deviceInfo?.ip}>
-                                You ({message.deviceInfo?.ip.replace('::ffff:', '')})
+                                You ({message.deviceInfo?.ip?.replace('::ffff:', '')})
                             </span>
                             <Button onClick={() => handleDelete(message.id)} variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive hover:bg-destructive/10" disabled={deletingId === message.id}>
                                 {deletingId === message.id ? <Loader2 className="animate-spin" size={12} /> : <Trash2 size={12} />}
@@ -196,7 +196,7 @@ export function MessageBubble({ message, isOwnMessage }: MessageBubbleProps) {
                 </div>
                 {message.deviceInfo && (
                      <div className="text-xs text-muted-foreground flex items-center gap-1.5" title={message.deviceInfo.userAgent}>
-                        <span>{message.userId} ({message.deviceInfo.ip.replace('::ffff:', '')})</span>
+                        <span>{message.userId} ({message.deviceInfo.ip?.replace('::ffff:', '')})</span>
                     </div>
                 )}
             </div>
