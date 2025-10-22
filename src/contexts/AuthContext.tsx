@@ -4,13 +4,13 @@ import { useState, useEffect, createContext, ReactNode, useCallback } from 'reac
 import { useRouter } from 'next/navigation';
 
 interface User {
-  email: string;
+  username: string;
 }
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, pass: string) => Promise<void>;
+  login: (username: string, pass: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -38,11 +38,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setLoading(false);
   }, []);
 
-  const login = useCallback(async (email: string, pass: string) => {
+  const login = useCallback(async (username: string, pass: string) => {
     // In a real app, this would be a call to an authentication service.
     // For this mock, we're just checking for a hardcoded user.
-    if (email.toLowerCase() === 'test' && pass === 'test123') {
-      const userData = { email };
+    if (username.toLowerCase() === 'test' && pass === 'test123') {
+      const userData = { username };
       localStorage.setItem('ephemeral-user', JSON.stringify(userData));
       setUser(userData);
     } else {

@@ -29,7 +29,7 @@ import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
 
 const formSchema = z.object({
-  email: z.string().email({ message: "Invalid email address." }),
+  username: z.string().min(1, { message: "Username is required." }),
   password: z.string().min(6, { message: "Password must be at least 6 characters." }),
 });
 
@@ -42,7 +42,7 @@ export default function SignupPage() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      email: "",
+      username: "",
       password: "",
     },
   });
@@ -53,7 +53,7 @@ export default function SignupPage() {
     try {
       // We'll use the same login logic for simplicity.
       // In a real app, you would have a separate signup function.
-      await login(values.email, values.password);
+      await login(values.username, values.password);
       toast({
         title: "Account Created",
         description: "You've been successfully signed up and logged in.",
@@ -62,7 +62,7 @@ export default function SignupPage() {
     } catch (error: any) {
       toast({
         title: "Signup Failed",
-        description: "This is a demo. Please use email 'test' and password 'test123' to sign up.",
+        description: "This is a demo. Please use username 'test' and password 'test123' to sign up.",
         variant: "destructive",
       });
     } finally {
@@ -84,12 +84,12 @@ export default function SignupPage() {
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <FormField
                 control={form.control}
-                name="email"
+                name="username"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email</FormLabel>
+                    <FormLabel>Username</FormLabel>
                     <FormControl>
-                      <Input type="email" placeholder="you@example.com" {...field} />
+                      <Input type="text" placeholder="your-username" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
