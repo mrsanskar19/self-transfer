@@ -18,13 +18,12 @@ type SseEventData =
   | { action: 'seen'; id: string; ip: string };
 
 export default function DashboardPage() {
-  const { user, loading, logout } = useAuth();
+  const { user, deviceInfo, loading, logout } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoadingMessages, setIsLoadingMessages] = useState(true);
-  const [deviceInfo, setDeviceInfo] = useState<DeviceInfo | null>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -108,25 +107,8 @@ export default function DashboardPage() {
     };
   }, [user, deviceInfo]);
 
-  // Update device info with the latest IP from the user's own messages
-  useEffect(() => {
-    if (user && messages.length > 0) {
-      const ownMessages = messages
-        .filter(m => m.userId === user.username)
-        .sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime());
-        
-      if (ownMessages.length > 0) {
-        const latestIp = ownMessages[0].deviceInfo?.ip;
-        if (latestIp && (!deviceInfo || deviceInfo.ip !== latestIp)) {
-          setDeviceInfo({ ip: latestIp, userAgent: navigator.userAgent });
-        }
-      } else if (!deviceInfo) {
-         setDeviceInfo({ ip: 'Unknown', userAgent: navigator.userAgent });
-      }
-    }
-  }, [messages, user, deviceInfo]);
 
-  if (loading) {
+  if (loading || !deviceInfo) {
     return (
       <div className="flex items-center justify-center h-screen">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -144,7 +126,7 @@ export default function DashboardPage() {
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
           </div>
         ) : messages.length > 0 ? (
-          <MessageList messages={messages} currentUser={user} currentDeviceIp={deviceInfo?.ip} />
+          <MessageList messages={messages} currentUser={user} currentDeviceIp={deviceInfo.ip} />
         ) : (
           <div className="flex justify-center items-center h-full">
             <Alert className="max-w-md text-center bg-background">

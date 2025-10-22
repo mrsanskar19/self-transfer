@@ -52,7 +52,7 @@ export async function POST(request: Request) {
     
     const id = Date.now().toString();
     const shareableUrl = body.type === 'file' ? `${new URL(request.url).origin}/shared/${id}` : undefined;
-    const ip = headerList.get('x-forwarded-for') || request.headers.get('host')?.split(':')[0] || 'Unknown';
+    const ip = (headerList.get('x-forwarded-for') ?? '127.0.0.1').split(',')[0].trim();
 
 
     const newMessage: Message = {
