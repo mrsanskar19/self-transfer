@@ -31,6 +31,9 @@ export default function Header() {
                 <Button variant="ghost" asChild>
                   <Link href="/dashboard">Dashboard</Link>
                 </Button>
+                <Button variant="ghost" asChild>
+                  <Link href="/admin">Admin</Link>
+                </Button>
                 <Button onClick={handleLogout}>Logout</Button>
               </>
             ) : (

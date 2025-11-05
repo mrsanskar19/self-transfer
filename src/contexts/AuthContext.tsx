@@ -9,7 +9,7 @@ interface User {
 }
 
 interface AuthContextType {
-  user: User | null;
+  user: User;
   deviceInfo: DeviceInfo | null;
   loading: boolean;
   login: (username: string, pass: string) => Promise<void>;

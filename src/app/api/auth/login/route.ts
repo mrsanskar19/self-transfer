@@ -35,8 +35,11 @@ export async function POST(request: Request) {
     );
 
     if (user) {
-      const ip = (headerList.get('x-forwarded-for') ?? '127.0.0.1').split(',')[0].trim();
-      const userAgent = headerList.get('user-agent') || 'Unknown';
+      const ip = await (headerList.get('x-forwarded-for') ?? request.headers.get('x-real-ip') ?? '127.0.0.1')
+        .split(',')[0]
+        .trim();
+      const userAgent = await headerList.get('user-agent') || 'Unknown';
+
       
       const newDevice = { ip, userAgent };
 
@@ -44,14 +47,8 @@ export async function POST(request: Request) {
         user.loginedDevices = [];
       }
       
-      const deviceExists = user.loginedDevices.some(
-        (d: any) => d.ip === newDevice.ip && d.userAgent === newDevice.userAgent
-      );
-
-      if (!deviceExists) {
         user.loginedDevices.push(newDevice);
         await saveDb(db);
-      }
 
       return NextResponse.json({ message: 'Login successful', ip, userAgent }, { status: 200 });
     } else {
