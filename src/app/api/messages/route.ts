@@ -6,7 +6,7 @@ import fs from 'fs/promises';
 import { broadcastMessage } from './events/route';
 import { Message } from '@/lib/types';
 
-const dbPath = path.join(process.cwd(), 'data', 'db.json');
+const dbPath = path.join(process.cwd(), 'src', 'app', 'api', 'temp', 'db.json');
 
 async function getDb() {
   try {

@@ -1,0 +1,85 @@
+{
+  "users": [
+    {
+      "id": "1",
+      "username": "sampleuser",
+      "password": "password123",
+      "name": "Sample User",
+      "email": "sample@example.com",
+      "loginedDevices": [
+        {
+          "ip": "127.0.0.1",
+          "userAgent": "Mozilla/5.0 (X11; CrOS x86_64 14541.0.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+        },
+        {
+          "ip": "192.168.1.101",
+          "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1"
+        },
+        {
+          "ip": "127.0.0.1",
+          "userAgent": "Mozilla/5.0 (X11; CrOS x86_64 14541.0.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+        },
+        {
+          "ip": "127.0.0.1",
+          "userAgent": "Mozilla/5.0 (X11; CrOS x86_64 14541.0.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+        },
+        {
+          "ip": "127.0.0.1",
+          "userAgent": "Mozilla/5.0 (X11; CrOS x86_64 14541.0.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+        }
+      ]
+    }
+  ],
+  "messages": [
+    {
+      "id": "1761134540741",
+      "uploadedAt": "2025-10-22T12:03:00.000Z",
+      "seenBy": [
+        "127.0.0.1"
+      ],
+      "deviceInfo": {
+        "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1",
+        "ip": "192.168.1.101"
+      },
+      "type": "text",
+      "content": "This is a message from another device.",
+      "userId": "anotheruser"
+    },
+    {
+      "id": "1761138459376",
+      "uploadedAt": "2025-10-22T13:07:39.482Z",
+      "seenBy": [],
+      "deviceInfo": {
+        "userAgent": "Mozilla/5.0 (X11; CrOS x86_64 14541.0.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36",
+        "ip": "127.0.0.1"
+      },
+      "type": "text",
+      "content": "hi",
+      "userId": "sampleuser"
+    },
+    {
+      "id": "1761138464117",
+      "uploadedAt": "2025-10-22T13:07:44.215Z",
+      "seenBy": [],
+      "deviceInfo": {
+        "userAgent": "Mozilla/5.0 (X11; CrOS x86_64 14541.0.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36",
+        "ip": "127.0.0.1"
+      },
+      "type": "text",
+      "content": "vjkh",
+      "userId": "sampleuser"
+    },
+    {
+      "id": "1761139907720",
+      "uploadedAt": "2025-10-22T13:31:47.949Z",
+      "seenBy": [],
+      "deviceInfo": {
+        "userAgent": "Mozilla/5.0 (X11; CrOS x86_64 14541.0.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36",
+        "ip": "127.0.0.1"
+      },
+      "type": "text",
+      "content": "hi",
+      "userId": "sampleuser"
+    }
+  ]
+}

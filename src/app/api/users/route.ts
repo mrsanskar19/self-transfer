@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import path from 'path';
 import fs from 'fs/promises';
 
-const dbPath = path.join(process.cwd(), 'data', 'db.json');
+const dbPath = path.join(process.cwd(), 'src', 'app', 'api', 'temp', 'db.json');
 
 async function getDb() {
   try {
@@ -11,6 +11,7 @@ async function getDb() {
     return JSON.parse(data);
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+      await fs.mkdir(path.dirname(dbPath), { recursive: true });
       const initialData = { users: [], messages: [] };
       await fs.writeFile(dbPath, JSON.stringify(initialData, null, 2));
       return initialData;
