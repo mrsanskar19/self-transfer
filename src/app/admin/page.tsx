@@ -1,77 +1,154 @@
+
 "use client";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useAuth } from "@/hooks/useAuth";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-
-export default function AdminPage() {
-    const { user, loading } = useAuth();
-    const router = useRouter();
-
-    useEffect(() => {
-        if (!loading && !user) {
-            router.push("/login");
-        }
-    }, [user, loading, router]);
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Activity, DollarSign, Users, CreditCard, HardDrive } from "lucide-react";
 
 
+export default function AdminDashboardPage() {
+    
   return (
-    <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-      <div className="flex items-center justify-between space-y-2">
-        <h2 className="text-3xl font-bold tracking-tight">Admin Dashboard</h2>
-      </div>
-      <Card>
-        <CardHeader>
-          <CardTitle>Welcome, Admin!</CardTitle>
-          <CardDescription>
-            This is the central place to manage your application.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-            <p>Here you can monitor user activity, manage content, and oversee the application's health.</p>
-        </CardContent>
-      </Card>
-       <Card>
-        <CardHeader>
-          <CardTitle>System Status</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Service</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Details</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              <TableRow>
-                <TableCell>Authentication</TableCell>
-                <TableCell>
-                  <span className="text-green-500 font-semibold">Operational</span>
-                </TableCell>
-                <TableCell>All systems running normally.</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>Database</TableCell>
-                <TableCell>
-                  <span className="text-green-500 font-semibold">Operational</span>
-                </TableCell>
-                <TableCell>Connected and responsive.</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>Real-time Events</TableCell>
-                 <TableCell>
-                  <span className="text-green-500 font-semibold">Operational</span>
-                </TableCell>
-                <TableCell>SSE client connections are stable.</TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-    </div>
+    <>
+        <div className="flex items-center">
+            <h1 className="text-lg font-semibold md:text-2xl">Admin Dashboard</h1>
+        </div>
+        <div
+            className="flex flex-1 rounded-lg border border-dashed shadow-sm" x-chunk="dashboard-02-chunk-1"
+        >
+          <div className="flex flex-col w-full">
+            <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
+              <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">
+                      Active Users
+                    </CardTitle>
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">1</div>
+                    <p className="text-xs text-muted-foreground">
+                      based on sample data
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">
+                      Storage Used
+                    </CardTitle>
+                    <HardDrive className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">~5 MB</div>
+                    <p className="text-xs text-muted-foreground">
+                      out of 2 GB limit
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Real-time Connections</CardTitle>
+                    <Activity className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">+1</div>
+                    <p className="text-xs text-muted-foreground">
+                      currently active SSE clients
+                    </p>
+                  </CardContent>
+                </Card>
+                 <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">
+                      Security Status
+                    </CardTitle>
+                    <CreditCard className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">Protected</div>
+                     <p className="text-xs text-muted-foreground">
+                      via Firebase Rules
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+              <Card>
+                <CardHeader>
+                  <CardTitle>System Status</CardTitle>
+                  <CardDescription>
+                    Overview of system health and services.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Service</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Details</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      <TableRow>
+                        <TableCell>Authentication</TableCell>
+                        <TableCell>
+                          <Badge className="text-xs" variant="outline">
+                            <span className="relative flex h-2 w-2 mr-2">
+                                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                            </span>
+                            Operational
+                          </Badge>
+                        </TableCell>
+                        <TableCell>JSON file-based auth is running.</TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell>Database</TableCell>
+                        <TableCell>
+                           <Badge className="text-xs" variant="outline">
+                            <span className="relative flex h-2 w-2 mr-2">
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                            </span>
+                            Operational
+                          </Badge>
+                        </TableCell>
+                        <TableCell>JSON file database is responsive.</TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell>Real-time Events (SSE)</TableCell>
+                        <TableCell>
+                           <Badge className="text-xs" variant="outline">
+                            <span className="relative flex h-2 w-2 mr-2">
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                            </span>
+                            Operational
+                          </Badge>
+                        </TableCell>
+                        <TableCell>SSE client connections are stable.</TableCell>
+                      </TableRow>
+                       <TableRow>
+                        <TableCell>Storage Subsystem</TableCell>
+                        <TableCell>
+                           <Badge className="text-xs" variant="outline">
+                            <span className="relative flex h-2 w-2 mr-2">
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                            </span>
+                            Operational
+                          </Badge>
+                        </TableCell>
+                        <TableCell>Files stored as base64 in JSON.</TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </main>
+          </div>
+        </div>
+    </>
   );
 }
