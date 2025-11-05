@@ -5,23 +5,28 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, User, Mail } from "lucide-react";
+import { ChevronLeft, User, Mail, Loader2 } from "lucide-react";
 import { User as UserType } from "@/lib/types";
 
-// In a real app, this would be a fetch call to your API.
-// For this prototype, we can import the JSON directly.
-import db from '@/data/db.json';
-
 async function getUsers(): Promise<UserType[]> {
-    return db.users as UserType[];
+    const response = await fetch('/api/users');
+    if (!response.ok) {
+        console.error('Failed to fetch users');
+        return [];
+    }
+    return response.json();
 }
 
 export default function UsersAdminPage() {
     const [users, setUsers] = useState<UserType[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
     const [selectedUser, setSelectedUser] = useState<UserType | null>(null);
 
     useEffect(() => {
-        getUsers().then(setUsers);
+        getUsers().then(data => {
+            setUsers(data);
+            setIsLoading(false);
+        });
     }, []);
 
     if (selectedUser) {
@@ -41,30 +46,36 @@ export default function UsersAdminPage() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Username</TableHead>
-                                <TableHead>Email</TableHead>
-                                <TableHead>Logged-in Devices</TableHead>
-                                <TableHead>Actions</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {users.map((user) => (
-                                <TableRow key={user.username}>
-                                    <TableCell className="font-medium">{user.username}</TableCell>
-                                    <TableCell>{user.email || 'Not Provided'}</TableCell>
-                                    <TableCell>{user.loginedDevices?.length || 0}</TableCell>
-                                    <TableCell>
-                                        <Button variant="outline" size="sm" onClick={() => setSelectedUser(user)}>
-                                            View Details
-                                        </Button>
-                                    </TableCell>
+                    {isLoading ? (
+                         <div className="flex justify-center items-center py-8">
+                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                         </div>
+                    ) : (
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Username</TableHead>
+                                    <TableHead>Email</TableHead>
+                                    <TableHead>Logged-in Devices</TableHead>
+                                    <TableHead>Actions</TableHead>
                                 </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
+                            </TableHeader>
+                            <TableBody>
+                                {users.map((user) => (
+                                    <TableRow key={user.username}>
+                                        <TableCell className="font-medium">{user.username}</TableCell>
+                                        <TableCell>{user.email || 'Not Provided'}</TableCell>
+                                        <TableCell>{user.loginedDevices?.length || 0}</TableCell>
+                                        <TableCell>
+                                            <Button variant="outline" size="sm" onClick={() => setSelectedUser(user)}>
+                                                View Details
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    )}
                 </CardContent>
             </Card>
         </>

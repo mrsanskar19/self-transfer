@@ -8,15 +8,20 @@ import { Badge } from "@/components/ui/badge";
 import { Activity, CreditCard, HardDrive, Users } from "lucide-react";
 import { User } from "@/lib/types";
 
-// In a real app, this would be a fetch call to an API.
-import db from '@/data/db.json';
+async function getUserCount(): Promise<number> {
+    const response = await fetch('/api/users');
+    if (!response.ok) {
+        return 0;
+    }
+    const users: User[] = await response.json();
+    return users.length;
+}
 
 export default function AdminDashboardPage() {
   const [userCount, setUserCount] = useState(0);
 
   useEffect(() => {
-    // For this prototype, we read directly from the imported JSON.
-    setUserCount(db.users.length);
+    getUserCount().then(setUserCount);
   }, []);
     
   return (
