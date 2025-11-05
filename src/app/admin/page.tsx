@@ -1,14 +1,23 @@
 
 "use client";
 
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { Activity, DollarSign, Users, CreditCard, HardDrive } from "lucide-react";
+import { Activity, CreditCard, HardDrive, Users } from "lucide-react";
+import { User } from "@/lib/types";
 
+// In a real app, this would be a fetch call to an API.
+import db from '@/data/db.json';
 
 export default function AdminDashboardPage() {
+  const [userCount, setUserCount] = useState(0);
+
+  useEffect(() => {
+    // For this prototype, we read directly from the imported JSON.
+    setUserCount(db.users.length);
+  }, []);
     
   return (
     <>
@@ -29,9 +38,9 @@ export default function AdminDashboardPage() {
                     <Users className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">1</div>
+                    <div className="text-2xl font-bold">{userCount}</div>
                     <p className="text-xs text-muted-foreground">
-                      based on sample data
+                      total users in the system
                     </p>
                   </CardContent>
                 </Card>
@@ -45,7 +54,7 @@ export default function AdminDashboardPage() {
                   <CardContent>
                     <div className="text-2xl font-bold">~5 MB</div>
                     <p className="text-xs text-muted-foreground">
-                      out of 2 GB limit
+                      out of 2 GB limit (conceptual)
                     </p>
                   </CardContent>
                 </Card>
@@ -55,9 +64,9 @@ export default function AdminDashboardPage() {
                     <Activity className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">+1</div>
+                    <div className="text-2xl font-bold">1</div>
                     <p className="text-xs text-muted-foreground">
-                      currently active SSE clients
+                      active SSE clients (conceptual)
                     </p>
                   </CardContent>
                 </Card>
@@ -71,7 +80,7 @@ export default function AdminDashboardPage() {
                   <CardContent>
                     <div className="text-2xl font-bold">Protected</div>
                      <p className="text-xs text-muted-foreground">
-                      via Firebase Rules
+                      via local JSON DB
                     </p>
                   </CardContent>
                 </Card>
@@ -80,7 +89,7 @@ export default function AdminDashboardPage() {
                 <CardHeader>
                   <CardTitle>System Status</CardTitle>
                   <CardDescription>
-                    Overview of system health and services.
+                    Overview of system health and services for this prototype.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -116,7 +125,7 @@ export default function AdminDashboardPage() {
                             Operational
                           </Badge>
                         </TableCell>
-                        <TableCell>JSON file database is responsive.</TableCell>
+                        <TableCell>Using `data/db.json` as the data source.</TableCell>
                       </TableRow>
                       <TableRow>
                         <TableCell>Real-time Events (SSE)</TableCell>
@@ -135,12 +144,12 @@ export default function AdminDashboardPage() {
                         <TableCell>
                            <Badge className="text-xs" variant="outline">
                             <span className="relative flex h-2 w-2 mr-2">
-                                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-yellow-500"></span>
                             </span>
-                            Operational
+                            Conceptual
                           </Badge>
                         </TableCell>
-                        <TableCell>Files stored as base64 in JSON.</TableCell>
+                        <TableCell>Files stored as base64 strings in `db.json`.</TableCell>
                       </TableRow>
                     </TableBody>
                   </Table>

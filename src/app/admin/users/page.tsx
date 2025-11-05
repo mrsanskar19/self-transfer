@@ -5,13 +5,14 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, User, Monitor, Mail } from "lucide-react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { User as UserType, DeviceInfo } from "@/lib/types";
+import { ChevronLeft, User, Mail } from "lucide-react";
+import { User as UserType } from "@/lib/types";
+
+// In a real app, this would be a fetch call to your API.
+// For this prototype, we can import the JSON directly.
+import db from '@/data/db.json';
 
 async function getUsers(): Promise<UserType[]> {
-    // In a real app, this would be a fetch call to your API
-    const db = await import('@/data/db.json');
     return db.users as UserType[];
 }
 
@@ -138,17 +139,3 @@ function UserDetailPage({ user, onBack }: { user: UserType, onBack: () => void }
         </>
     );
 }
-
-// Dummy icon to prevent build errors, as it's used in UserDetailPage but not defined in this scope.
-const ChevronLeft = (props: any) => (
-  <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="m15 18-6-6 6-6" />
-  </svg>
-);
-const UsersRound = (props: any) => (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" >
-        <path d="M18 21a8 8 0 0 0-16 0" />
-        <circle cx="10" cy="8" r="5" />
-        <path d="M22 20c0-3.37-2-6.5-4-8a5 5 0 0 0-10 0c-2 1.5-4 4.63-4 8" />
-    </svg>
-);

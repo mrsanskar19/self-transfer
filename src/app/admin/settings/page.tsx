@@ -1,11 +1,9 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
-import { ShieldCheck, Bell, Trash2 } from "lucide-react";
+import { ShieldCheck, Trash2, UserPlus } from "lucide-react";
 
 export default function SettingsAdminPage() {
   return (
@@ -28,14 +26,14 @@ export default function SettingsAdminPage() {
                     <Label htmlFor="e2ee-switch" className="flex flex-col space-y-1">
                       <span className="font-medium flex items-center gap-2"><ShieldCheck/> End-to-End Encryption (E2EE)</span>
                       <span className="text-xs text-muted-foreground">
-                        When enabled, all messages are encrypted. This is a conceptual feature.
+                        When enabled, all messages are encrypted client-side. This is a conceptual feature for this prototype.
                       </span>
                     </Label>
                     <Switch id="e2ee-switch" disabled />
                 </div>
                  <div className="flex items-center justify-between space-x-2 p-4 border rounded-lg">
                     <Label htmlFor="new-user-switch" className="flex flex-col space-y-1">
-                      <span className="font-medium flex items-center gap-2"><UsersRound/> Allow New User Signups</span>
+                      <span className="font-medium flex items-center gap-2"><UserPlus/> Allow New User Signups</span>
                       <span className="text-xs text-muted-foreground">
                         Control whether new users can register.
                       </span>
@@ -57,7 +55,7 @@ export default function SettingsAdminPage() {
                     <div className="flex flex-col space-y-1">
                       <span className="font-medium flex items-center gap-2 text-destructive"><Trash2/> Purge All Data</span>
                       <span className="text-xs text-destructive/80">
-                        This will permanently delete all users and messages. This action cannot be undone.
+                        This will permanently delete all users and messages from `db.json`. This action cannot be undone.
                       </span>
                     </div>
                     <Button variant="destructive">Purge Data</Button>
