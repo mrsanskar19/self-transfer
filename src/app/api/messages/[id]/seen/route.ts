@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import path from 'path';
 import fs from 'fs/promises';
 import { headers } from 'next/headers';
-import { broadcastMessage } from '../events/route';
+import { broadcastMessage } from '../../events/route';
 
 const dbPath = path.join(process.cwd(), 'data', 'db.json');
 
