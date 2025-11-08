@@ -2,7 +2,7 @@
 import { NextResponse } from 'next/server';
 import path from 'path';
 import fs from 'fs/promises';
-import { broadcastMessage } from '../../events/route';
+import { broadcastMessage } from '../events/route';
 
 const dbPath = path.join(process.cwd(), 'src', 'app', 'api', 'temp', 'db.json');
 
