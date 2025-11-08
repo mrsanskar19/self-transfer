@@ -1,0 +1,21 @@
+{
+  "/_not-found/page": "app/_not-found/page.js",
+  "/api/auth/login/route": "app/api/auth/login/route.js",
+  "/api/auth/signup/route": "app/api/auth/signup/route.js",
+  "/api/messages/[id]/route": "app/api/messages/[id]/route.js",
+  "/api/messages/[id]/seen/route": "app/api/messages/[id]/seen/route.js",
+  "/api/messages/events/route": "app/api/messages/events/route.js",
+  "/api/messages/route": "app/api/messages/route.js",
+  "/api/users/route": "app/api/users/route.js",
+  "/favicon.ico/route": "app/favicon.ico/route.js",
+  "/dashboard/page": "app/dashboard/page.js",
+  "/login/page": "app/login/page.js",
+  "/page": "app/page.js",
+  "/shared/[id]/page": "app/shared/[id]/page.js",
+  "/signup/page": "app/signup/page.js",
+  "/admin/page": "app/admin/page.js",
+  "/admin/realtime/page": "app/admin/realtime/page.js",
+  "/admin/settings/page": "app/admin/settings/page.js",
+  "/admin/storage/page": "app/admin/storage/page.js",
+  "/admin/users/page": "app/admin/users/page.js"
+}
