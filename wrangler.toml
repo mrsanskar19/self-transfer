@@ -1,7 +1,5 @@
-{
-  "name": "my-worker",
-  "compatibility_date": "2025-11-08",
-  "assets": {
-    "directory": "./dist"
-  }
-}
+name = "my-worker"
+compatibility_date = "2025-11-08"
+
+[assets]
+directory = "./dist"
