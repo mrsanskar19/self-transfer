@@ -1,4 +1,19 @@
-name = "my-worker"
+name = "self-transfer"
 compatibility_date = "2025-11-08"
+
 [assets]
 directory = "./dist"
+# Exclude Webpack cache, source maps, and other large unnecessary build artifacts
+exclude = [
+  "dist/cache/**",
+  "**/*.map",
+  "**/*.log"
+]
+
+[build]
+# Optional: define your build command if using Wrangler's deploy pipeline
+# command = "npm run build"
+
+# Optional: if your app uses durable objects, queues, etc., you can add bindings here
+# [durable_objects]
+# bindings = []
