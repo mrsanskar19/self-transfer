@@ -1,4 +1,11 @@
 name = "self-transfer"
+main = "dist/_worker.js"  # Adjust this if your worker entry file is elsewhere
 compatibility_date = "2025-11-08"
 
-
+[assets]
+directory = "dist"
+exclude = [
+  "dist/cache/**",
+  "**/*.map",
+  "**/*.log"
+]
